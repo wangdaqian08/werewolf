@@ -30,9 +30,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(final MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("/broadcast", "/private");
         config.setApplicationDestinationPrefixes("/app");
-        config.setUserDestinationPrefix("/user/");
+        config.setUserDestinationPrefix("/user");
     }
 
     @Override
@@ -43,11 +43,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setHandshakeHandler(getPlayerHandshakeHandler())
                 .withSockJS();
 
-
-//        registry.addEndpoint(CONNECT)
-//                .setAllowedOrigins("*")
-//                .setHandshakeHandler(getPlayerHandshakeHandler())
-//                .withSockJS();
+        registry.addEndpoint(CONNECT, PRIVATE_MESSAGE_ENDPOINT, BROADCAST_MESSAGE_ENDPOINT)
+                .setAllowedOrigins("*")
+                .setHandshakeHandler(getPlayerHandshakeHandler());
     }
 
     /**

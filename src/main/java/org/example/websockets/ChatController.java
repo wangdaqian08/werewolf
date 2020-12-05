@@ -12,8 +12,6 @@ import org.springframework.stereotype.Controller;
 import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.example.utils.EndpointConstant.BROADCAST_MESSAGE_ENDPOINT;
 import static org.example.utils.EndpointConstant.PRIVATE_MESSAGE_ENDPOINT;
@@ -24,8 +22,8 @@ public class ChatController {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    private final static String DESTINATION = "/topic/messages";
-    private final static String PRIVATE_DESTINATION = "/topic/private/messages";
+    private final static String DESTINATION = "/broadcast/messages";
+    private final static String PRIVATE_DESTINATION = "/private/messages";
 
     @Autowired
     public ChatController(SimpMessagingTemplate simpMessagingTemplate) {
