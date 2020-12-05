@@ -6,7 +6,7 @@ $(document).ready(function () {
         this.privateMsgUrl = "/app/chat/private";
         if (url) {
             this.url = url
-            this.socket = new SockJS("http://localhost:8080/connect");
+            this.socket = new SockJS(url);
             this.stompClient = Stomp.over(this.socket);
             this.stompClient.heartbeat.outgoing = 20000;
         }
