@@ -1,0 +1,16 @@
+/Users/daqwang/self_project/online-game/src/main/java/org/example/config/ApplicationConfiguration.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/websockets/OutputMessage.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/Application.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/service/PlayerService.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/model/StompPrincipal.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/model/Role.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/websockets/Message.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/controller/GameController.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/utils/EndpointConstant.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/service/GameService.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/utils/UserIdGenerator.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/utils/UserNotFoundException.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/websockets/ChatController.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/config/WebMvcConfig.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/handler/PlayerHandshakeHandler.java
+/Users/daqwang/self_project/online-game/src/main/java/org/example/websockets/WebSocketConfig.java

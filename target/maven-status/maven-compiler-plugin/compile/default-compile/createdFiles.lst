@@ -1,0 +1,16 @@
+org/example/websockets/ChatController.class
+org/example/config/ApplicationConfiguration.class
+org/example/utils/UserNotFoundException.class
+org/example/utils/EndpointConstant.class
+org/example/websockets/WebSocketConfig.class
+org/example/model/StompPrincipal.class
+org/example/model/Role.class
+org/example/service/GameService.class
+org/example/handler/PlayerHandshakeHandler.class
+org/example/utils/UserIdGenerator.class
+org/example/websockets/OutputMessage.class
+org/example/Application.class
+org/example/websockets/Message.class
+org/example/controller/GameController.class
+org/example/config/WebMvcConfig.class
+org/example/service/PlayerService.class
