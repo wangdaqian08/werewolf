@@ -37,9 +37,7 @@ public class ChatController {
         log.info("Received broadcast greeting message {} from {} with sessionId {}", message.getText(), principal.getName(), sessionId);
 
         final String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        OutputMessage outputMessage = new OutputMessage(message.getFrom(), message.getText(), time, principal.getName());
-        simpMessagingTemplate.convertAndSend(DESTINATION, outputMessage);
-        return outputMessage;
+        return new OutputMessage(message.getFrom(), message.getText(), time, principal.getName());
     }
 
 
@@ -49,26 +47,8 @@ public class ChatController {
         log.info("Received private greeting message {} from {} with sessionId {}", message.getText(), principal.getName(), sessionId);
 
         final String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
-        OutputMessage outputMessage = new OutputMessage(message.getFrom(), message.getText(), time, principal.getName());
-        simpMessagingTemplate.convertAndSendToUser(principal.getName(), PRIVATE_DESTINATION, outputMessage);
-        return outputMessage;
+        return new OutputMessage(message.getFrom(), message.getText(), time, principal.getName());
     }
 
-
-//    @GetMapping("/testPrivateMsg/{username}")
-//    @SendToUser(DESTINATION)
-//    public String testPrivateMsg(@PathVariable("username") String username) {
-//        final String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
-//        OutputMessage outputMessage = new OutputMessage("System", "private message", time);
-//        Principal principal = players.get(username);
-//        if (principal != null) {
-//            log.info("receiver:{},destination:{}", principal.getName(), DESTINATION);
-//            simpMessagingTemplate.convertAndSendToUser(principal.getName(), DESTINATION, outputMessage);
-//        } else {
-//            log.info("can't find receiver:{}", username);
-//        }
-//
-//        return "test";
-//    }
 
 }

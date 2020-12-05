@@ -69,7 +69,6 @@ $(document).ready(function () {
         StompConnector.prototype.disconnect = function () {
             if (this.stompClient) {
                 this.stompClient.disconnect();
-                // this.stompClient.close();
             }
 
             setConnected(false);
@@ -161,7 +160,7 @@ $(document).ready(function () {
     let Werewolf = class Werewolf {
         constructor() {
             this.resetStomp();
-            setInterval(this.check_status, 30000)
+            setInterval(this.check_status, 3000)
         }
 
         //reset stomp connection
