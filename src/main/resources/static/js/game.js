@@ -1,5 +1,12 @@
 $(document).ready(function () {
 
+    function testCode() {
+        let randomStr = Math.random().toString(36).substring(4);
+        $('#from').val(randomStr);
+    }
+
+    testCode();
+
     let StompConnector = function StompConnector(url) {
 
         this.broadcastMsgUrl = "/app/chat/broadcast";
@@ -82,10 +89,17 @@ $(document).ready(function () {
         myStomp.privateMsg();
     });
 
+    //make sure the nick name is set
     $("#btnConnect").click(function () {
-        myStomp = new StompConnector("/connect");
-        myStomp.enableDebug(true);
-        myStomp.connect();
+        let nickname = $('#from').val();
+        if (nickname.trim()) {
+            myStomp = new StompConnector("/connect");
+            myStomp.enableDebug(true);
+            myStomp.connect();
+        } else {
+            alert("please enter a nick name")
+        }
+
     });
 
     $('#btnDisconnect').click(function () {
@@ -98,11 +112,17 @@ $(document).ready(function () {
     });
 
     $("#btnReady").click(function () {
-        var userId = $("#player-id").text();
-        ready(userId);
-        //update player-list
-        werewolf.check_status();
-        toggleReadyButton(false);
+
+        let nickname = $('#from').val();
+        if (nickname.trim()) {
+            let userId = $("#player-id").text();
+            ready(userId, nickname);
+            //update player-list
+            werewolf.check_status();
+            toggleReadyButton(false);
+        } else {
+            alert("please enter a nick name")
+        }
     });
 
 
@@ -115,11 +135,12 @@ $(document).ready(function () {
 
     }
 
-    function ready(userId) {
-        var url = "/game/ready/" + userId;
+    function ready(userId, nickname) {
+        let url = "/game/ready/" + nickname + "/" + userId;
         $.getJSON(url, function (result) {
-            console.log(result);
             toggleReadyButton(false);
+        }).fail(function (result) {
+            console.log(result);
         });
     }
 
@@ -139,7 +160,7 @@ $(document).ready(function () {
 
     function findUserId(str) {
         if (str.includes('user-name:')) {
-            var userId = str.substr(51);
+            let userId = str.substr(51).replace(/\s+/g, '');
             $('#player-id').text(userId);
         }
     }
@@ -175,17 +196,14 @@ $(document).ready(function () {
             var url = "/game/player/status";
             $.getJSON(url, function (onlinePlayersList) {
 
-
-                console.log(onlinePlayersList)
-                var playerListDiv = $('#player-list');
+                let playerListDiv = $('#player-list');
                 playerListDiv.empty();
                 $.each(onlinePlayersList, function (key, player) {
 
-                    console.log(player.name + " " + player.ready);
-
                     var readyStatusSpan;
                     if (player.ready) {
-                        readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Ready!</span>"
+                        let playerValue = player.nickName ? player.nickName : player.name;
+                        readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerValue + "</span>&nbsp &nbsp<span>Ready!</span>"
                     } else {
                         readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Waiting...</span>"
                     }
@@ -194,7 +212,7 @@ $(document).ready(function () {
             });
         }
     }
-    //,reset stomp connection, start polling on player status
+    //reset stomp connection, start polling on player status
     let werewolf = new Werewolf();
 
 });
@@ -202,3 +220,8 @@ $(document).ready(function () {
 
 const CONNECTED_STATUS = 'connected';
 const DISCONNECTED_STATUS = 'disconnected';
+
+//not a good woy of disable refresh page
+window.onbeforeunload = function () {
+    return "Dude, are you sure you want to leave?";
+}

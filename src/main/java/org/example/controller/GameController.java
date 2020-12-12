@@ -2,6 +2,7 @@ package org.example.controller;
 
 import org.example.model.StompPrincipal;
 import org.example.service.GameService;
+import org.example.service.PlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by daqwang on 9/2/20.
@@ -23,11 +23,13 @@ public class GameController {
 
 
     private final GameService gameService;
+    private final PlayerService playerService;
 
 
     @Autowired
-    public GameController(final GameService gameService) {
+    public GameController(final GameService gameService, final PlayerService playerService) {
         this.gameService = gameService;
+        this.playerService = playerService;
     }
 
     /**
@@ -56,15 +58,16 @@ public class GameController {
     }
 
 
-    @GetMapping(value = "/ready/{userId}", produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<StompPrincipal> ready(@PathVariable("userId") String userId) {
-        return ResponseEntity.ok(gameService.readyPlayer(userId));
+    @GetMapping(value = "/ready/{nickname}/{userId}", produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<StompPrincipal> ready(@PathVariable("userId") String userId, @PathVariable("nickname") String nickname) {
+        return ResponseEntity.ok(gameService.readyPlayer(userId, nickname));
     }
 
 
     @GetMapping(value = "/player/status", produces = {MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<List<StompPrincipal>> playerStatus() {
-        return ResponseEntity.ok(gameService.showPlayersStatus());
+        return ResponseEntity.ok(playerService.showPlayersStatus());
     }
+
 
 }

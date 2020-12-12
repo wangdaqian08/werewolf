@@ -22,8 +22,8 @@ public class ChatController {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    private final static String DESTINATION = "/broadcast/messages";
-    private final static String PRIVATE_DESTINATION = "/private/messages";
+    public final static String BROADCAST_DESTINATION = "/broadcast/messages";
+    public final static String PRIVATE_DESTINATION = "/private/messages";
 
     @Autowired
     public ChatController(SimpMessagingTemplate simpMessagingTemplate) {
@@ -32,7 +32,7 @@ public class ChatController {
 
 
     @MessageMapping(BROADCAST_MESSAGE_ENDPOINT)
-    @SendTo(DESTINATION)
+    @SendTo(BROADCAST_DESTINATION)
     public OutputMessage sendToBroadcast(final Message message, @Header("simpSessionId") String sessionId, Principal principal) {
         log.info("Received broadcast greeting message {} from {} with sessionId {}", message.getText(), principal.getName(), sessionId);
 
