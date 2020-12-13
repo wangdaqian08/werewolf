@@ -1,5 +1,12 @@
 $(document).ready(function () {
 
+    function testCode() {
+        let randomStr = Math.random().toString(36).substring(4);
+        $('#from').val(randomStr);
+    }
+
+    testCode();
+
     let StompConnector = function StompConnector(url) {
 
         this.broadcastMsgUrl = "/app/chat/broadcast";
@@ -46,11 +53,19 @@ $(document).ready(function () {
                 console.log("Receive broadcast message");
                 showBroadcastMessageOutput(JSON.parse(messageOutput.body));
             });
+            this.subscribe('/broadcast/player/status', function (messageOutput) {
+                console.log("Receive broadcast message player ready status");
+                showBroadcastMessageOutputForStatus(JSON.parse(messageOutput.body));
+            });
 
             this.subscribe('/user/private/messages', function (messageOutput) {
-
                 console.log("Receive private message");
                 showMessageOutput(JSON.parse(messageOutput.body));
+            });
+
+            this.subscribe('/user/private/role', function (messageOutput) {
+                console.log("Receive private message for role");
+                showPrivateMessageOutputForRole(JSON.parse(messageOutput.body));
             });
         }
 
@@ -82,10 +97,29 @@ $(document).ready(function () {
         myStomp.privateMsg();
     });
 
+    $('#btn-role').click(function () {
+        let $this = $(this);
+        let role = $('#role');
+        let isHidden = role.is(":visible");
+        if (isHidden) {
+            $this.text('show my role');
+        } else {
+            $this.text('hide my role');
+        }
+        role.toggle();
+    })
+
+    //make sure the nick name is set
     $("#btnConnect").click(function () {
-        myStomp = new StompConnector("/connect");
-        myStomp.enableDebug(true);
-        myStomp.connect();
+        let nickname = $('#from').val();
+        if (nickname.trim()) {
+            myStomp = new StompConnector("/connect");
+            myStomp.enableDebug(true);
+            myStomp.connect();
+        } else {
+            alert("please enter a nick name")
+        }
+
     });
 
     $('#btnDisconnect').click(function () {
@@ -98,11 +132,17 @@ $(document).ready(function () {
     });
 
     $("#btnReady").click(function () {
-        var userId = $("#player-id").text();
-        ready(userId);
-        //update player-list
-        werewolf.check_status();
-        toggleReadyButton(false);
+
+        let nickname = $('#from').val();
+        if (nickname.trim()) {
+            let userId = $("#player-id").text();
+            ready(userId, nickname);
+            //update player-list
+            werewolf.check_status();
+            toggleReadyButton(false);
+        } else {
+            alert("please enter a nick name")
+        }
     });
 
 
@@ -115,11 +155,30 @@ $(document).ready(function () {
 
     }
 
-    function ready(userId) {
-        var url = "/game/ready/" + userId;
+    function ready(userId, nickname) {
+        let url = "/game/ready/" + nickname + "/" + userId;
         $.getJSON(url, function (result) {
-            console.log(result);
             toggleReadyButton(false);
+        }).fail(function (result) {
+            console.log(result);
+        });
+    }
+
+    function showBroadcastMessageOutputForStatus(messageOutput) {
+        console.log(messageOutput)
+        let onlinePlayersList = JSON.parse(messageOutput.message);
+        let playerListDiv = $('#player-list');
+        playerListDiv.empty();
+        $.each(onlinePlayersList, function (key, player) {
+
+            var readyStatusSpan;
+            if (player.isReady) {
+                let playerValue = player.nickName ? player.nickName : player.name;
+                readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerValue + "</span>&nbsp &nbsp<span>Ready!</span>"
+            } else {
+                readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Waiting...</span>"
+            }
+            playerListDiv.append("<br/>").append(readyStatusSpan);
         });
     }
 
@@ -133,13 +192,27 @@ $(document).ready(function () {
     }
 
     function showBroadcastMessageOutput(messageOutput) {
-        $('#player-list').text(messageOutput.name);
+        console.log("broadcast message:" + messageOutput.message);
+        let space = "&nbsp";
+        let sender = "<span>" + messageOutput.sender + "</span>"
+        let time = "<span>" + messageOutput.time + "</span>"
+        let message = "<span>" + messageOutput.message + "</span>"
+        let new_message = "<li>" + time + space + sender + space + message + "</li>"
+        var div = document.getElementById('system-message');
+        $('#system-message').append(new_message)
+            .animate({scrollTop: div.scrollHeight - div.clientHeight}, 700);
+    }
+
+    function showPrivateMessageOutputForRole(messageOutput) {
+        console.log(messageOutput);
+        $('#role').text(messageOutput.role);
+        $('#btn-role').prop('disabled', false);
     }
 
 
     function findUserId(str) {
         if (str.includes('user-name:')) {
-            var userId = str.substr(51);
+            let userId = str.substr(51).replace(/\s+/g, '');
             $('#player-id').text(userId);
         }
     }
@@ -160,7 +233,6 @@ $(document).ready(function () {
     let Werewolf = class Werewolf {
         constructor() {
             this.resetStomp();
-            setInterval(this.check_status, 3000)
         }
 
         //reset stomp connection
@@ -169,32 +241,8 @@ $(document).ready(function () {
             myStomp.enableDebug(true, myStomp);
             myStomp.disconnect();
         }
-
-        //get request check player status
-        check_status() {
-            var url = "/game/player/status";
-            $.getJSON(url, function (onlinePlayersList) {
-
-
-                console.log(onlinePlayersList)
-                var playerListDiv = $('#player-list');
-                playerListDiv.empty();
-                $.each(onlinePlayersList, function (key, player) {
-
-                    console.log(player.name + " " + player.ready);
-
-                    var readyStatusSpan;
-                    if (player.ready) {
-                        readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Ready!</span>"
-                    } else {
-                        readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Waiting...</span>"
-                    }
-                    playerListDiv.append("<br/>").append(readyStatusSpan);
-                });
-            });
-        }
     }
-    //,reset stomp connection, start polling on player status
+    //reset stomp connection, start polling on player status
     let werewolf = new Werewolf();
 
 });
@@ -202,3 +250,8 @@ $(document).ready(function () {
 
 const CONNECTED_STATUS = 'connected';
 const DISCONNECTED_STATUS = 'disconnected';
+
+//not a good woy of disable refresh page
+window.onbeforeunload = function () {
+    return "Dude, are you sure you want to leave?";
+}

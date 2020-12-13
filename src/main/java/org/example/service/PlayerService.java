@@ -1,17 +1,18 @@
 package org.example.service;
 
 import lombok.Data;
-import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.utils.UserIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.thymeleaf.util.ListUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Created by daqwang on 28/11/20.
@@ -32,20 +33,6 @@ public class PlayerService {
     }
 
 
-    public List<StompPrincipal> assignRolesForPlayers(List<StompPrincipal> players) {
-        if (ListUtils.isEmpty(players) || checkMinimumPlayerNumber(players.size())) {
-            logger.error("invalid number of players: {},need at least 7 players.", players.size());
-        }
-        List<Role> roleList = showRoles(players.size());
-        Collections.shuffle(roleList);
-        Collections.shuffle(players);
-        for (int i = 0; i < players.size(); i++) {
-            players.get(i).setRole(roleList.get(i));
-            roleList.remove(i);
-        }
-        return players;
-    }
-
     public StompPrincipal createPlayer() {
         String userId = UserIdGenerator.generateUserId();
         StompPrincipal stompPrincipal = new StompPrincipal(userId);
@@ -63,28 +50,46 @@ public class PlayerService {
         }
     }
 
-
-    private boolean checkMinimumPlayerNumber(int size) {
-        return size >= 7;
+    public List<StompPrincipal> getReadyPlayerList() {
+        return players.stream().filter(StompPrincipal::isReady).collect(Collectors.toList());
     }
+
+
+    boolean hasMinimumReadyPlayer(List<StompPrincipal> players) {
+        List<StompPrincipal> readyList = players.stream().filter(StompPrincipal::isReady).collect(Collectors.toList());
+        return readyList.size() >= 7;
+    }
+
+
+    public List<StompPrincipal> showPlayersStatus() {
+        if (ListUtils.isEmpty(getPlayers())) {
+            logger.warn("no players");
+            return null;
+        }
+        return getPlayers();
+    }
+
+
+    public StompPrincipal getPlayerByName(final String name) {
+        if (CollectionUtils.isEmpty(players)) {
+            throw new RuntimeException("player list not ready,can't find name: " + name);
+        }
+        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getName().equalsIgnoreCase(name)).findFirst();
+        return optionalStompPrincipal.orElse(null);
+    }
+
 
     /**
-     * todo need to dynamic create roles, like more wolves and more villagers.
+     * reset all ready players' vote count to 0
      *
-     * @param size
-     * @return
+     * @return ready players
      */
-    public List<Role> showRoles(int size) {
-        List<Role> roleList = new ArrayList<>(size);
-        roleList.add(Role.PROPHET);
-        roleList.add(Role.WITCH);
-        roleList.add(Role.WOLF);
-        roleList.add(Role.WOLF);
-        roleList.add(Role.VILLAGER);
-        roleList.add(Role.VILLAGER);
-        roleList.add(Role.VILLAGER);
-        return roleList;
+    public List<StompPrincipal> resetVoteCount() {
+        List<StompPrincipal> readyPlayerList = this.getReadyPlayerList();
+        if (CollectionUtils.isEmpty(readyPlayerList)) {
+            throw new RuntimeException("no ready players yet");
+        }
+        readyPlayerList.forEach(readyPlayer -> readyPlayer.setVoteCount(0));
+        return readyPlayerList;
     }
-
-
 }

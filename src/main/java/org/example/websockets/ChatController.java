@@ -13,8 +13,7 @@ import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.example.utils.EndpointConstant.BROADCAST_MESSAGE_ENDPOINT;
-import static org.example.utils.EndpointConstant.PRIVATE_MESSAGE_ENDPOINT;
+import static org.example.utils.EndpointConstant.*;
 
 @Slf4j
 @Controller
@@ -22,8 +21,6 @@ public class ChatController {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    private final static String DESTINATION = "/broadcast/messages";
-    private final static String PRIVATE_DESTINATION = "/private/messages";
 
     @Autowired
     public ChatController(SimpMessagingTemplate simpMessagingTemplate) {
@@ -32,7 +29,7 @@ public class ChatController {
 
 
     @MessageMapping(BROADCAST_MESSAGE_ENDPOINT)
-    @SendTo(DESTINATION)
+    @SendTo(BROADCAST_DESTINATION)
     public OutputMessage sendToBroadcast(final Message message, @Header("simpSessionId") String sessionId, Principal principal) {
         log.info("Received broadcast greeting message {} from {} with sessionId {}", message.getText(), principal.getName(), sessionId);
 
