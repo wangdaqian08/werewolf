@@ -1,6 +1,7 @@
 package org.example.schedule;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.model.GameMessage;
 import org.example.model.StompPrincipal;
 import org.example.service.GameService;
 import org.example.service.PlayerService;
@@ -11,14 +12,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import static org.example.websockets.ChatController.BROADCAST_DESTINATION;
+import static org.example.utils.EndpointConstant.BROADCAST_DESTINATION;
 
 /**
  * Created by daqwang on 12/12/20.
@@ -30,6 +27,8 @@ public class Scheduler {
     private final GameService gameService;
     private final PlayerService playerService;
     private final SimpMessagingTemplate simpMessagingTemplate;
+
+
     @Value("${total.player.number}")
     private int totalPlayers;
 
@@ -45,18 +44,32 @@ public class Scheduler {
         log.info("scheduled task started");
 
         if (!isGameStarted()) {
-            LocalDateTime localDateTime = LocalDateTime.now().plusSeconds(5);
-            Date timeToStart = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
-            final String time = new SimpleDateFormat("HH:mm:ss").format(timeToStart);
-            simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, "Assign roles in 5 seconds at " + time + "...");
+            simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage("Assign roles in 5 seconds..."));
             Thread.sleep(5000);
             List<StompPrincipal> readyPlayerList = playerService.getReadyPlayerList();
             if (!CollectionUtils.isEmpty(readyPlayerList) && totalPlayers == readyPlayerList.size()) {
                 gameService.deal();
-                log.info("assign finished");
+                simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage("Roles have been assigned!"));
             }
         }
     }
+
+    public int getTotalPlayers() {
+        return totalPlayers;
+    }
+
+//    @Scheduled(fixedDelay = 15000, initialDelay = 1000)
+//    public void testBroadcastMessage() throws InterruptedException {
+//        log.info("testBroadcastMessage started");
+//
+//
+//        LocalDateTime localDateTime = LocalDateTime.now().plusSeconds(5);
+//        Date timeToStart = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+//        final String time = new SimpleDateFormat("HH:mm:ss").format(timeToStart);
+//        simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(RandomStringUtils.random(15)));
+//
+//
+//    }
 
     public boolean isGameStarted() {
         List<StompPrincipal> readyPlayerList = playerService.getReadyPlayerList();

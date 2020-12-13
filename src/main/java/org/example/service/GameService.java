@@ -14,7 +14,7 @@ import org.thymeleaf.util.ListUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.example.websockets.ChatController.PRIVATE_DESTINATION;
+import static org.example.utils.EndpointConstant.PRIVATE_ROLE_DESTINATION;
 
 /**
  * Created by daqwang on 28/11/20.
@@ -47,7 +47,7 @@ public class GameService {
             return Collections.emptyList();
         } else {
             stompPrincipals.forEach(stompPrincipal -> {
-                simpMessagingTemplate.convertAndSendToUser(stompPrincipal.getName(), PRIVATE_DESTINATION, stompPrincipal);
+                simpMessagingTemplate.convertAndSendToUser(stompPrincipal.getName(), PRIVATE_ROLE_DESTINATION, stompPrincipal);
             });
             return stompPrincipals;
         }

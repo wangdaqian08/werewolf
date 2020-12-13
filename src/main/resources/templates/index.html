@@ -36,6 +36,20 @@
             color: black;
             font-weight: bold;
         }
+
+        .system-message {
+            overflow: scroll;
+            width: 150px;
+            height: 100px;
+            background-color: #bebebe;
+        }
+
+        .role {
+            font-size: x-large;
+            font-style: italic;
+            color: black;
+            font-weight: bold;
+        }
     </style>
     <title>Chat WebSocket</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -67,6 +81,9 @@
 </div>
 
 <div class="player-details">Your Code:<span id="player-id" class="player-id"></span></div>
+<ul class="system-message" id="system-message"></ul>
+<div class="role" id="role"></div>
+<button disabled="disabled" id="btn-role">Role</button>
 <div id="player-list" class="players"></div>
 <div id="connect-status" class="disconnect"></div>
 <div id="debug" class="debug"></div>

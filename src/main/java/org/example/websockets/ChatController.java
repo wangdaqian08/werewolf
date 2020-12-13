@@ -13,8 +13,7 @@ import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.example.utils.EndpointConstant.BROADCAST_MESSAGE_ENDPOINT;
-import static org.example.utils.EndpointConstant.PRIVATE_MESSAGE_ENDPOINT;
+import static org.example.utils.EndpointConstant.*;
 
 @Slf4j
 @Controller
@@ -22,8 +21,6 @@ public class ChatController {
 
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-    public final static String BROADCAST_DESTINATION = "/broadcast/messages";
-    public final static String PRIVATE_DESTINATION = "/private/messages";
 
     @Autowired
     public ChatController(SimpMessagingTemplate simpMessagingTemplate) {
