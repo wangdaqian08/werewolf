@@ -38,7 +38,15 @@ public class VoteReport {
         return voteReport;
     }
 
-    public void createDetails(final StompPrincipal player, final Set<StompPrincipal> voteDetails) {
+    /**
+     * vote details, for example:
+     * Jack --> Lucy, Mark, Jason <br/>
+     * Jack been voted by 3 players: Lucy, Mark, Jason.
+     *
+     * @param player      the player
+     * @param voteDetails the players who vote this  player
+     */
+    public void makeVoteDetails(final StompPrincipal player, final Set<StompPrincipal> voteDetails) {
         details.put(player, voteDetails);
     }
 

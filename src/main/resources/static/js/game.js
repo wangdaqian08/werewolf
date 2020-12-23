@@ -30,6 +30,10 @@ $(document).ready(function () {
             }
         }
 
+        StompConnector.prototype.subscribePrivateRoleChannel = function (url, callback) {
+            this.stompClient.subscribe(url, callback);
+        }
+
         StompConnector.prototype.connect = function () {
 
             this.stompClient.connect({}, this.successCallback, this.errorCallback);
@@ -137,8 +141,6 @@ $(document).ready(function () {
         if (nickname.trim()) {
             let userId = $("#player-id").text();
             ready(userId, nickname);
-            //update player-list
-            werewolf.check_status();
             toggleReadyButton(false);
         } else {
             alert("please enter a nick name")
@@ -166,7 +168,7 @@ $(document).ready(function () {
 
     function showBroadcastMessageOutputForStatus(messageOutput) {
         console.log(messageOutput)
-        let onlinePlayersList = JSON.parse(messageOutput.message);
+        let onlinePlayersList = messageOutput;
         let playerListDiv = $('#player-list');
         playerListDiv.empty();
         $.each(onlinePlayersList, function (key, player) {
@@ -205,8 +207,24 @@ $(document).ready(function () {
 
     function showPrivateMessageOutputForRole(messageOutput) {
         console.log(messageOutput);
+        subscribeRoleDestination(messageOutput.role);
         $('#role').text(messageOutput.role);
         $('#btn-role').prop('disabled', false);
+    }
+
+    function subscribeRoleDestination(role) {
+        let role_destination;
+        if (role !== 'VILLAGER') {
+            role_destination = '/user/private/' + role.toLowerCase();
+        }
+        // subscribe role destination
+        myStomp.subscribePrivateRoleChannel(role_destination, function (roleMessage) {
+            handleRoleActionMessage(roleMessage.body);
+        });
+    }
+
+    function handleRoleActionMessage(roleMessage) {
+        console.log('private role message' + roleMessage)
     }
 
 
@@ -228,22 +246,6 @@ $(document).ready(function () {
         document.getElementById('conversationDiv').style.visibility = connected ? 'visible' : 'hidden';
         document.getElementById('response').innerHTML = '';
     }
-
-
-    let Werewolf = class Werewolf {
-        constructor() {
-            this.resetStomp();
-        }
-
-        //reset stomp connection
-        resetStomp() {
-            let myStomp = new StompConnector();
-            myStomp.enableDebug(true, myStomp);
-            myStomp.disconnect();
-        }
-    }
-    //reset stomp connection, start polling on player status
-    let werewolf = new Werewolf();
 
 });
 
