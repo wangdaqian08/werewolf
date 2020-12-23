@@ -28,6 +28,39 @@ public class GameService {
     private final VoteService voteService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
+    /**
+     * find player by given player id, if found, set ready = true and inGame = true, if not found, throw exception.
+     * check total ready players, once all players are ready, start game, (efficient than scheduled job for )
+     *
+     * @param playerName playerName
+     * @return StompPrincipal the player
+     */
+    public StompPrincipal readyPlayer(final String playerName, final String nickname) {
+
+        List<StompPrincipal> players = playerService.getPlayers();
+        if (ListUtils.isEmpty(players) || StringUtils.isBlank(playerName)) {
+            logger.error("can't find user");
+            return null;
+        }
+
+        StompPrincipal stompPrincipal = players.stream()
+                .filter(player -> player.getName().equalsIgnoreCase(playerName))
+                .findFirst().map(
+                        player -> {
+                            player.setReady(true);
+                            player.setInGame(true);
+                            player.setNickName(nickname);
+                            return player;
+                        }
+                ).orElseThrow(() -> new RuntimeException("can't find user: " + playerName));
+
+        if (playerService.getReadyPlayerList().size() == playerService.getTotalPlayers()) {
+            // TODO 18/12/20
+            // assignRoles()
+        }
+        return stompPrincipal;
+    }
+
     @Autowired
     public GameService(final PlayerService playerService, final VoteService voteService, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
@@ -54,29 +87,17 @@ public class GameService {
     }
 
     /**
-     * find player by given player id, if found, set ready = true and inGame = true, if not found, throw exception.
+     * find the role for the given player nickName who is ready and inGame.
      *
-     * @param playerName playerName
-     * @return StompPrincipal the player
+     * @param nickName of the player to be checked
+     * @return Role of the player
      */
-    public StompPrincipal readyPlayer(final String playerName, final String nickname) {
-
-        List<StompPrincipal> players = playerService.getPlayers();
-        if (ListUtils.isEmpty(players) || StringUtils.isBlank(playerName)) {
-            logger.error("can't find user");
-            return null;
+    public Role checkPlayerRole(final String nickName) {
+        StompPrincipal stompPrincipal = playerService.getReadyPlayerList().stream().filter(readyPlayer -> readyPlayer.isInGame()).filter(readyPlayer -> readyPlayer.getNickName().equalsIgnoreCase(nickName)).findFirst().orElse(null);
+        if (stompPrincipal != null) {
+            return stompPrincipal.getRole();
         }
-
-        return players.stream()
-                .filter(player -> player.getName().equalsIgnoreCase(playerName))
-                .findFirst().map(
-                        player -> {
-                            player.setReady(true);
-                            player.setInGame(true);
-                            player.setNickName(nickname);
-                            return player;
-                        }
-                ).orElseThrow(() -> new RuntimeException("can't find user: " + playerName));
+        return null;
     }
 
     /**
@@ -89,7 +110,7 @@ public class GameService {
 
 
         List<Role> featureRoleList = new ArrayList<>();
-        featureRoleList.add(Role.SEEER);
+        featureRoleList.add(Role.SEER);
         featureRoleList.add(Role.WITCH);
         featureRoleList.add(Role.WOLF);
         featureRoleList.add(Role.WOLF);
@@ -157,5 +178,32 @@ public class GameService {
             players.get(i).setRole(roleList.get(i));
         }
         return players;
+    }
+
+    public enum ACTION {
+        /**
+         * witch action: kill a player using poison
+         */
+        POISON,
+
+        /**
+         * witch action to save the player using antidote
+         */
+        SAVE,
+
+        /**
+         * wolf action to kill the player
+         */
+        KILL,
+
+        /**
+         * seer action to check the player's identity
+         */
+        CHECK,
+
+        /**
+         * every player vote for the player your suspect
+         */
+        VOTE,
     }
 }

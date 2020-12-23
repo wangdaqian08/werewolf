@@ -27,6 +27,7 @@ public class StompPrincipal implements Principal {
     private boolean inGame = false;
     private String nickName;
     private Integer voteCount = 0;
+    private boolean hasVoted = false;
     private Set<StompPrincipal> votedBySet = new HashSet<>();
 
     public StompPrincipal(String name) {

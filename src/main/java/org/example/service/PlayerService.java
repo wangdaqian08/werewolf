@@ -1,10 +1,12 @@
 package org.example.service;
 
 import lombok.Data;
+import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.utils.UserIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.thymeleaf.util.ListUtils;
@@ -25,6 +27,8 @@ public class PlayerService {
 
     private int currentPlayers;
     private List<StompPrincipal> players;
+    @Value("${total.player.number}")
+    private int totalPlayers;
 
     public PlayerService() {
         if (players == null) {
@@ -54,6 +58,11 @@ public class PlayerService {
         return players.stream().filter(StompPrincipal::isReady).collect(Collectors.toList());
     }
 
+    public List<StompPrincipal> getInGamePlayersByRole(final Role role) {
+        return this.getReadyPlayerList().stream()
+                .filter(player -> player.getRole().equals(role) && player.isInGame())
+                .collect(Collectors.toList());
+    }
 
     boolean hasMinimumReadyPlayer(List<StompPrincipal> players) {
         List<StompPrincipal> readyList = players.stream().filter(StompPrincipal::isReady).collect(Collectors.toList());

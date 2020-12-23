@@ -1,7 +1,6 @@
 package org.example.controller;
 
 import com.google.gson.Gson;
-import org.example.model.GameMessage;
 import org.example.model.StompPrincipal;
 import org.example.schedule.Scheduler;
 import org.example.service.GameService;
@@ -72,10 +71,10 @@ public class GameController {
     public ResponseEntity<StompPrincipal> ready(@PathVariable("userId") String userId, @PathVariable("nickname") String nickname) throws InterruptedException {
         StompPrincipal stompPrincipalReady = gameService.readyPlayer(userId, nickname);
         List<StompPrincipal> stompPrincipals = playerService.showPlayersStatus();
-        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new GameMessage(new Gson().toJson(stompPrincipals)));
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(stompPrincipals));
         //aggressively start the game after the this request, instead of waiting for scheduled task.
-        if (playerService.getReadyPlayerList().size() == scheduler.getTotalPlayers()) {
-            scheduler.startGame();
+        if (playerService.getReadyPlayerList().size() == playerService.getTotalPlayers()) {
+            scheduler.assignRoles();
         }
         return ResponseEntity.ok(stompPrincipalReady);
     }

@@ -13,4 +13,11 @@ public class EndpointConstant {
     public final static String BROADCAST_PLAYER_STATUS_DESTINATION = "/broadcast/player/status";
     public final static String PRIVATE_DESTINATION = "/private/messages";
     public final static String PRIVATE_ROLE_DESTINATION = "/private/role";
+
+    //server to client action message destination, client needs to subsribe role specified destination
+    public final static String PRIVATE_WEREWOLF_ACTION_DESTINATION = "/private/wolf";
+    public final static String PRIVATE_SEER_ACTION_DESTINATION = "/private/seer";
+    public final static String PRIVATE_WITCH_ACTION_DESTINATION = "/private/witch";
+
+
 }

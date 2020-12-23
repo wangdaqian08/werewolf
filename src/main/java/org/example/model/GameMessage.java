@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by daqwang on 13/12/20.
@@ -22,6 +23,7 @@ public class GameMessage {
     private String sender;
     private String time;
     private String message;
+    private List<StompPrincipal> candidatePlayers;
 
     public GameMessage(String message) {
         this.message = message;

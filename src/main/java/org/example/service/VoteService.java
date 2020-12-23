@@ -29,14 +29,13 @@ public class VoteService {
     /**
      * player vote the others players based on speech.
      *
-     * @param voter the player who make the vote
-     * @param name  the player who will be voted
-     * @return
+     * @param voter      the player who make the vote
+     * @param playerName the player who will be voted
      */
-    public void vote(final StompPrincipal voter, final String name) {
+    public void vote(final StompPrincipal voter, final String playerName) {
 
         //only inGame user can vote and vote only inGame players
-        StompPrincipal player = playerService.getPlayerByName(name);
+        StompPrincipal player = playerService.getPlayerByName(playerName);
         if (voter.isInGame() && validatePlayer(player)) {
             player.voteBy(voter);
         } else {
@@ -69,7 +68,7 @@ public class VoteService {
             return voteReport;
         }
         // calculate vote,create vote details
-        remainPlayers.forEach(remainPlayer -> voteReport.createDetails(remainPlayer, remainPlayer.getVotedBySet()));
+        remainPlayers.forEach(remainPlayer -> voteReport.makeVoteDetails(remainPlayer, remainPlayer.getVotedBySet()));
 
         // check draw condition
         calculateVoteCondition(voteReport, remainPlayers);
