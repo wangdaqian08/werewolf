@@ -60,7 +60,7 @@ public class GameServiceTest {
     public List<StompPrincipal> createPlayers(int size, String nickname) {
         List<StompPrincipal> list = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            list.add(playerService.createPlayer());
+            list.add(playerService.createPlayer(String.valueOf(System.currentTimeMillis())));
         }
         list.forEach(player -> {
             player.setNickName(nickname);
