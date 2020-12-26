@@ -95,9 +95,12 @@ public abstract class AbstractGameAction implements Callable<Object> {
 
         List<StompPrincipal> inGamePlayersByRole = playerService.getInGamePlayersByRole(role);
         if (!CollectionUtils.isEmpty(inGamePlayersByRole)) {
-            inGamePlayersByRole.forEach(player ->
-                    simpMessagingTemplate.convertAndSendToUser(player.getName(), actionDestination, gameMessage));
-            log.info("send message to:" + role + "," + inGamePlayersByRole.get(0).getName());
+            inGamePlayersByRole.forEach(player -> {
+                        simpMessagingTemplate.convertAndSendToUser(player.getName(), actionDestination, gameMessage);
+                        log.info("send message to:" + role + "," + player.getName());
+                    }
+            );
+
         }
     }
 
