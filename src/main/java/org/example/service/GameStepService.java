@@ -58,9 +58,9 @@ public class GameStepService {
     private void initGameActions() {
         gameSteps.offer(createTransitTimeAction(CLOSE_EYES_ACTION_MESSAGE, 10));
         gameSteps.offer(werewolfAction);
-        gameSteps.offer(createTransitTimeAction("", 5));
+        gameSteps.offer(createTransitTimeAction("start soon....", 5));
         gameSteps.offer(seerAction);
-        gameSteps.offer(createTransitTimeAction("", 5));
+        gameSteps.offer(createTransitTimeAction("start soon....", 5));
         gameSteps.offer(witchAction);
         gameSteps.offer(createTransitTimeAction(createWeakUpMessage(victims), 0));
 
