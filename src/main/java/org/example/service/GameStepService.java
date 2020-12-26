@@ -58,7 +58,9 @@ public class GameStepService {
     private void initGameActions() {
         gameSteps.offer(createTransitTimeAction(CLOSE_EYES_ACTION_MESSAGE, 10));
         gameSteps.offer(werewolfAction);
+        gameSteps.offer(createTransitTimeAction("", 5));
         gameSteps.offer(seerAction);
+        gameSteps.offer(createTransitTimeAction("", 5));
         gameSteps.offer(witchAction);
         gameSteps.offer(createTransitTimeAction(createWeakUpMessage(victims), 0));
 
@@ -90,6 +92,10 @@ public class GameStepService {
             executorService.shutdown();
         }
         log.info("all actions are finished");
+
+        // TODO 24/12/20
+        // calculate vote report/ result
+        // reset victims, update in game status, reset witch action player (poison/antidote)
     }
 
 }

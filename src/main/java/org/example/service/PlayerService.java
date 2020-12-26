@@ -37,20 +37,22 @@ public class PlayerService {
     }
 
 
-    public StompPrincipal createPlayer() {
+    public StompPrincipal createPlayer(final String sessionId) {
         String userId = UserIdGenerator.generateUserId();
-        StompPrincipal stompPrincipal = new StompPrincipal(userId);
-        while (players.contains(stompPrincipal)) {
-            stompPrincipal.setName(UserIdGenerator.generateUserId());
+        StompPrincipal stompPrincipal = new StompPrincipal(userId, sessionId);
+        if (players.contains(stompPrincipal)) {
+            return players.stream()
+                    .filter(player -> player.getSessionId().equalsIgnoreCase(sessionId))
+                    .findFirst().orElse(null);
         }
         players.add(stompPrincipal);
         return stompPrincipal;
     }
 
 
-    public void cleanAllUsers() {
+    public void removePlayerBySessionId(final String sessionId) {
         if (!ListUtils.isEmpty(players)) {
-            players.clear();
+            players.removeIf(player -> player.getSessionId().equalsIgnoreCase(sessionId));
         }
     }
 
