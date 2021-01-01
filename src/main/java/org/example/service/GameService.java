@@ -117,7 +117,7 @@ public class GameService {
 
         List<Role> roleList = new ArrayList<>(size);
 
-        // size - 4 means, after above 4 roles, the number of remaining ready players
+        // (size - 4) means, after above 4 roles, the number of remaining ready players
         for (int i = 0; i < size - featureRoleList.size(); i++) {
             roleList.add(Role.VILLAGER);
         }
@@ -140,9 +140,7 @@ public class GameService {
         List<StompPrincipal> remainVillagers = remainPlayers.stream().filter((StompPrincipal remainPlayer) -> remainPlayer.getRole().equals(Role.VILLAGER))
                 .collect(Collectors.toList());
 
-        List<StompPrincipal> remainFeatures = remainPlayers.stream().filter((StompPrincipal remainPlayer) -> {
-            return !remainPlayer.getRole().equals(Role.VILLAGER) && !remainPlayer.getRole().equals(Role.WOLF);
-        }).collect(Collectors.toList());
+        List<StompPrincipal> remainFeatures = remainPlayers.stream().filter((StompPrincipal remainPlayer) -> !remainPlayer.getRole().equals(Role.VILLAGER) && !remainPlayer.getRole().equals(Role.WOLF)).collect(Collectors.toList());
 
         Map<Boolean, String> results = new HashMap<>();
         String message = "Game continue";
@@ -180,11 +178,11 @@ public class GameService {
         return players;
     }
 
-    public enum ACTION {
+    public enum RoleAction {
         /**
          * witch action: kill a player using poison
          */
-        POISON,
+        POISONING,
 
         /**
          * witch action to save the player using antidote
@@ -205,5 +203,10 @@ public class GameService {
          * every player vote for the player your suspect
          */
         VOTE,
+
+        /**
+         * witch choose do nothing
+         */
+        NOTHING
     }
 }

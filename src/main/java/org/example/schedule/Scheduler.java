@@ -67,4 +67,8 @@ public class Scheduler {
         return true;
     }
 
+    public void startGame() throws InterruptedException {
+        gameStepService.initGameActions();
+        gameStepService.startGame();
+    }
 }

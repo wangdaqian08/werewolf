@@ -1,5 +1,6 @@
 package org.example.service;
 
+import org.example.action.WitchAction;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.junit.Assert;
@@ -26,12 +27,16 @@ public class GameServiceTest {
     @Mock
     private SimpMessagingTemplate simpMessagingTemplate;
 
+    @Mock
+    private VoiceOutputService voiceOutputService;
+
 
     @Before
     public void setup() {
 
         this.playerService = new PlayerService();
-        this.voteService = new VoteService(this.playerService);
+        WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
+        this.voteService = new VoteService(this.playerService, witchAction);
 
     }
 

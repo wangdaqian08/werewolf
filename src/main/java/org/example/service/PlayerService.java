@@ -66,6 +66,12 @@ public class PlayerService {
                 .collect(Collectors.toList());
     }
 
+    public List<StompPrincipal> getInGamePlayers() {
+        return this.getReadyPlayerList().stream()
+                .filter(StompPrincipal::isInGame)
+                .collect(Collectors.toList());
+    }
+
     boolean hasMinimumReadyPlayer(List<StompPrincipal> players) {
         List<StompPrincipal> readyList = players.stream().filter(StompPrincipal::isReady).collect(Collectors.toList());
         return readyList.size() >= 7;
@@ -81,11 +87,11 @@ public class PlayerService {
     }
 
 
-    public StompPrincipal getPlayerByName(final String name) {
+    public StompPrincipal getPlayerByNickName(final String nickName) {
         if (CollectionUtils.isEmpty(players)) {
-            throw new RuntimeException("player list not ready,can't find name: " + name);
+            throw new RuntimeException("player list not ready,can't find nickName: " + nickName);
         }
-        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getName().equalsIgnoreCase(name)).findFirst();
+        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getNickName().equalsIgnoreCase(nickName)).findFirst();
         return optionalStompPrincipal.orElse(null);
     }
 

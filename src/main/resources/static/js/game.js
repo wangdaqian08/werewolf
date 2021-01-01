@@ -25,7 +25,7 @@ $(document).ready(function () {
                     findUserId(str);
                     var div = "<div>" + str + "</div>";
 
-                    $("#debug").append(div);
+                    $("#debug").prepend(div);
                 };
             }
         }
@@ -193,8 +193,7 @@ $(document).ready(function () {
         $('#player-id').text(messageOutput.name);
     }
 
-    function showBroadcastMessageOutput(messageOutput) {
-        console.log("broadcast message:" + messageOutput.message);
+    function scrollToLatestMsg(messageOutput) {
         let space = "&nbsp";
         let sender = "<span>" + messageOutput.sender + "</span>"
         let time = "<span>" + messageOutput.time + "</span>"
@@ -203,6 +202,11 @@ $(document).ready(function () {
         var div = document.getElementById('system-message');
         $('#system-message').append(new_message)
             .animate({scrollTop: div.scrollHeight - div.clientHeight}, 700);
+    }
+
+    function showBroadcastMessageOutput(messageOutput) {
+        console.log("broadcast message:" + messageOutput.message);
+        scrollToLatestMsg(messageOutput);
     }
 
     function showPrivateMessageOutputForRole(messageOutput) {
@@ -219,12 +223,13 @@ $(document).ready(function () {
         }
         // subscribe role destination
         myStomp.subscribePrivateRoleChannel(role_destination, function (roleMessage) {
-            handleRoleActionMessage(roleMessage.body);
+            handleRoleActionMessage(JSON.parse(roleMessage.body));
         });
     }
 
     function handleRoleActionMessage(roleMessage) {
-        console.log('private role message' + roleMessage)
+        console.log('private role message' + roleMessage.message)
+        scrollToLatestMsg(roleMessage);
     }
 
 

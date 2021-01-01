@@ -2,11 +2,14 @@ package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Role;
+import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
 import org.example.service.VoiceOutputService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 import static org.example.utils.EndpointConstant.PRIVATE_SEER_ACTION_DESTINATION;
 
@@ -26,7 +29,7 @@ public class SeerAction extends AbstractGameAction {
 
     @Autowired
     public SeerAction(final PlayerService playerService, final SimpMessagingTemplate simpMessagingTemplate, final VoiceOutputService voiceOutputService) {
-        super(simpMessagingTemplate, playerService);
+        super(playerService, simpMessagingTemplate);
         this.voiceOutputService = voiceOutputService;
         this.setStatus(STATUS.READY);
     }
@@ -49,6 +52,13 @@ public class SeerAction extends AbstractGameAction {
                 e.printStackTrace();
             }
         }
+
+        List<StompPrincipal> inGameSeer = playerService.getInGamePlayersByRole(Role.SEER);
+        inGameSeer.forEach(seer -> {
+            // reset wolf hasVoted field after wolf kill action
+            seer.setHasVoted(false);
+        });
+
         log.info("Seer Action Completed");
         setStatus(STATUS.FINISHED);
         resetVoteForRole(playerService, Role.SEER);

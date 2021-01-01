@@ -12,7 +12,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -29,11 +32,10 @@ public abstract class AbstractGameAction implements Callable<Object> {
     protected final SimpMessagingTemplate simpMessagingTemplate;
     protected STATUS status;
     private LinkedList<AbstractGameAction> gameActionList = new LinkedList<>();
-    private List<StompPrincipal> victims = new ArrayList<>();
-    private Map<GameService.ACTION, StompPrincipal> witchActionPlayer = new HashMap<>();
+    private Map<GameService.RoleAction, StompPrincipal> witchActionPlayer = new HashMap<>();
 
     @Autowired
-    public AbstractGameAction(final SimpMessagingTemplate simpMessagingTemplate, final PlayerService playerService) {
+    public AbstractGameAction(final PlayerService playerService, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
@@ -42,20 +44,23 @@ public abstract class AbstractGameAction implements Callable<Object> {
      * each game action implements by itself, as different action has different criteria of finish.
      *
      * @return true: the game action(game step) is completed(all available voters have voted)/no player with the given role <br/>
-     * false: the game action(game step) is not yet completed.
+     * false: the game action(game step) is not yet completed.<br/>
+     * the isHasVoted attribute is set by
      */
     protected boolean isActionCompleted(final Role role) {
-        List<StompPrincipal> inGameWolfPlayers = playerService.getInGamePlayersByRole(role);
+        List<StompPrincipal> inGameRolePlayers = playerService.getInGamePlayersByRole(role);
 
-        if (CollectionUtils.isEmpty(inGameWolfPlayers)) {
+        if (CollectionUtils.isEmpty(inGameRolePlayers)) {
             //no wolves left in Game, action is completed
             return true;
         } else {
-            int numberOfVoted = (int) inGameWolfPlayers.stream().filter(StompPrincipal::isHasVoted).count();
-            // check if all in game wolves have voted
-            boolean isFinished = inGameWolfPlayers.size() == numberOfVoted;
+            int numberOfVoted = (int) inGameRolePlayers.stream().filter(StompPrincipal::isHasVoted).count();
+            // check if all in game players with roles have voted
+            boolean isFinished = inGameRolePlayers.size() == numberOfVoted;
             if (isFinished) {
-                //if all players with the given are voted, need to reset the vote flag for next round.
+                // TODO 27/12/20
+                // add
+                //if all players with the given are voted, need to reset the vote flag the for next round.
                 this.resetVoteForRole(playerService, role);
             }
             return isFinished;
@@ -71,9 +76,7 @@ public abstract class AbstractGameAction implements Callable<Object> {
     protected void resetVoteForRole(final PlayerService playerService, final Role role) {
         playerService.getReadyPlayerList().stream()
                 .filter(player -> player.isInGame() && player.getRole().equals(role))
-                .forEach(player -> {
-                    player.setHasVoted(false);
-                });
+                .forEach(player -> player.setHasVoted(false));
     }
 
     /**
@@ -118,6 +121,4 @@ public abstract class AbstractGameAction implements Callable<Object> {
          */
         FINISHED
     }
-
-
 }

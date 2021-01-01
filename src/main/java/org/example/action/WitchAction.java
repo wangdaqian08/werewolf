@@ -2,14 +2,15 @@ package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Role;
+import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
 import org.example.service.VoiceOutputService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.example.utils.EndpointConstant.PRIVATE_WITCH_ACTION_DESTINATION;
 
@@ -29,7 +30,7 @@ public class WitchAction extends AbstractGameAction {
     private final VoiceOutputService voiceOutputService;
 
     public WitchAction(final PlayerService playerService, final SimpMessagingTemplate simpMessagingTemplate, final VoiceOutputService voiceOutputService) {
-        super(simpMessagingTemplate, playerService);
+        super(playerService, simpMessagingTemplate);
         this.voiceOutputService = voiceOutputService;
         this.setStatus(STATUS.READY);
         witchItems.put(POISON, true);
@@ -44,11 +45,13 @@ public class WitchAction extends AbstractGameAction {
         }
     }
 
-    public Map<String, Boolean> getAvailableWitchItems() {
+    public boolean consumeAvailableWitchItem(final String witchItem) {
 
         return this.witchItems.entrySet().stream()
-                .filter(Map.Entry::getValue)
-                .collect(Collectors.toMap(Map.Entry::getKey, stringBooleanEntry -> true));
+                .filter(witchItemEntry -> witchItemEntry.getValue() && witchItemEntry.getKey().equalsIgnoreCase(witchItem))
+                .findAny()
+                .map(witchItemEntry -> consumeWitchItem(witchItemEntry.getKey()))
+                .orElse(false);
     }
 
     @Override
@@ -67,9 +70,15 @@ public class WitchAction extends AbstractGameAction {
                 e.printStackTrace();
             }
         }
+
+        List<StompPrincipal> inGameWitch = playerService.getInGamePlayersByRole(Role.WITCH);
+        inGameWitch.forEach(witch -> {
+            // reset witch hasVoted field after wolf kill action
+            witch.setHasVoted(false);
+        });
         log.info("Witch Action Completed");
         setStatus(STATUS.FINISHED);
-
+        resetVoteForRole(playerService, Role.WITCH);
         voiceOutputService.speak(WITCH_ACTION_CLOSE_EYES_MESSAGE);
         return true;
     }

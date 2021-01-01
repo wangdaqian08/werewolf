@@ -2,10 +2,13 @@ package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Role;
+import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
 import org.example.service.VoiceOutputService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 import static org.example.utils.EndpointConstant.PRIVATE_WEREWOLF_ACTION_DESTINATION;
 
@@ -25,19 +28,20 @@ public class WerewolfAction extends AbstractGameAction {
 
 
     public WerewolfAction(final PlayerService playerService, final SimpMessagingTemplate simpMessagingTemplate, final VoiceOutputService voiceOutputService) {
-        super(simpMessagingTemplate, playerService);
+        super(playerService, simpMessagingTemplate);
         this.voiceOutputService = voiceOutputService;
         this.setStatus(STATUS.READY);
     }
 
     @Override
-    public Object call() throws Exception {
+    public Object call() {
 
         setStatus(STATUS.IN_PROGRESS);
         sendPrivateRoleMessageToPlayer(PRIVATE_WEREWOLF_ACTION_DESTINATION, WOLVES_ACTION_KILL_QUESTION_MESSAGE, Role.WOLF);
         // TODO 20/12/20
         // voiceOutputService.speak(WOLVES_ACTION_KILL_MESSAGE)
         log.info("Werewolf Action Started");
+
         while (!isActionCompleted(Role.WOLF)) {
 
             // block the thread if this action haven't completed
@@ -48,9 +52,17 @@ public class WerewolfAction extends AbstractGameAction {
                 e.printStackTrace();
             }
         }
+
+        List<StompPrincipal> inGameWolves = playerService.getInGamePlayersByRole(Role.WOLF);
+        inGameWolves.forEach(wolf -> {
+            // reset wolf hasVoted field after wolf kill action
+            wolf.setHasVoted(false);
+        });
+
+
         log.info("Werewolf Action Completed");
         setStatus(STATUS.FINISHED);
-
+        resetVoteForRole(playerService, Role.WOLF);
         voiceOutputService.speak(WOLVES_ACTION_CLOSE_EYES_MESSAGE);
         return true;
     }

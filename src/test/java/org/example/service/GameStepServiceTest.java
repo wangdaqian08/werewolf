@@ -37,18 +37,18 @@ public class GameStepServiceTest {
     public void setup() {
 
         this.playerService = new PlayerService();
-        this.voteService = new VoteService(playerService);
-        this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
         VoiceOutputService voiceOutputService = new VoiceOutputService();
         SeerAction seerAction = new SeerAction(playerService, simpMessagingTemplate, voiceOutputService);
         WerewolfAction werewolfAction = new WerewolfAction(playerService, simpMessagingTemplate, voiceOutputService);
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.gameStepService = new GameStepService(werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
+        this.voteService = new VoteService(playerService, witchAction);
+        this.gameStepService = new GameStepService(playerService, werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
+        this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
 
     }
 
     @Test
-    public void testGameSteps() {
+    public void testGameSteps() throws InterruptedException {
         gameStepService.startGame();
     }
 
