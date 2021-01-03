@@ -3,9 +3,11 @@ package org.example.schedule;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.GameMessage;
 import org.example.model.StompPrincipal;
+import org.example.model.VoteReport;
 import org.example.service.GameService;
 import org.example.service.GameStepService;
 import org.example.service.PlayerService;
+import org.example.service.VoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,14 +30,16 @@ public class Scheduler {
     private static final int TIME_TO_COUNTDOWN_IN_SECONDS = 3;
     private final GameService gameService;
     private final PlayerService playerService;
+    private final VoteService voteService;
     private final GameStepService gameStepService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     @Autowired
-    public Scheduler(final GameService gameService, final PlayerService playerService, final GameStepService gameStepService, final SimpMessagingTemplate simpMessagingTemplate) {
+    public Scheduler(final GameService gameService, final PlayerService playerService, final GameStepService gameStepService, final VoteService voteService, final SimpMessagingTemplate simpMessagingTemplate) {
         this.gameService = gameService;
         this.playerService = playerService;
         this.gameStepService = gameStepService;
+        this.voteService = voteService;
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
@@ -55,6 +59,27 @@ public class Scheduler {
         }
     }
 
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    public void broadcastVoteResult() {
+        VoteReport voteReport = voteService.checkVoteStatus();
+        if (voteReport.getVoteCompleted()) {
+
+            voteReport = voteService.generateVoteResult();
+            log.info("voteReport:{}", voteReport);
+            voteService.broadcastVoteStatus();
+            // TODO 2/1/21
+            // broadcast vote result
+
+            // TODO 2/1/21
+            // check if game finished
+            voteService.resetInGamePlayerVote();
+
+            VoteReport.reset();
+        } else {
+            log.info("vote report completed:{}", voteReport.getVoteCompleted());
+        }
+    }
+
 
     public boolean isRoleAssigned() {
         List<StompPrincipal> readyPlayerList = playerService.getReadyPlayerList();
@@ -67,7 +92,8 @@ public class Scheduler {
         return true;
     }
 
-    public void startGame() throws InterruptedException {
+
+    public void startGameAgain() throws InterruptedException {
         gameStepService.initGameActions();
         gameStepService.startGame();
     }

@@ -106,7 +106,10 @@ public class PlayerService {
         if (CollectionUtils.isEmpty(readyPlayerList)) {
             throw new RuntimeException("no ready players yet");
         }
-        readyPlayerList.forEach(readyPlayer -> readyPlayer.setVoteCount(0));
+        readyPlayerList.forEach(readyPlayer -> {
+            readyPlayer.setVoteCount(0);
+            readyPlayer.setHasVoted(false);
+        });
         return readyPlayerList;
     }
 }

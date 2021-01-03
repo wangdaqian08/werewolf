@@ -41,7 +41,7 @@ public class GameStepServiceTest {
         SeerAction seerAction = new SeerAction(playerService, simpMessagingTemplate, voiceOutputService);
         WerewolfAction werewolfAction = new WerewolfAction(playerService, simpMessagingTemplate, voiceOutputService);
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.voteService = new VoteService(playerService, witchAction);
+        this.voteService = new VoteService(playerService, witchAction, simpMessagingTemplate);
         this.gameStepService = new GameStepService(playerService, werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
         this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
 

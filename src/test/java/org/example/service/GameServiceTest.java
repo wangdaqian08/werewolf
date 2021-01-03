@@ -36,7 +36,7 @@ public class GameServiceTest {
 
         this.playerService = new PlayerService();
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.voteService = new VoteService(this.playerService, witchAction);
+        this.voteService = new VoteService(this.playerService, witchAction, simpMessagingTemplate);
 
     }
 

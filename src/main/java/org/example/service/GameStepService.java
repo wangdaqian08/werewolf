@@ -1,5 +1,6 @@
 package org.example.service;
 
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.example.action.SeerAction;
 import org.example.action.TransitAction;
@@ -21,6 +22,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static org.example.utils.EndpointConstant.BROADCAST_DESTINATION;
+import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINATION;
 
 
 /**
@@ -124,13 +126,12 @@ public class GameStepService {
                 finished = futures.stream().filter(Future::isDone)
                         .collect(Collectors.toList());
                 log.info("finished tasks:{}", finished.size());
-                Thread.sleep(5000L);
+                Thread.sleep(100L);
             }
             gameSteps.clear();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-
             executorService.awaitTermination(5, TimeUnit.SECONDS);
             log.info("tasks shutdown:{}", executorService.isShutdown());
         }
@@ -140,6 +141,12 @@ public class GameStepService {
         // calculate victim report
         String weakUpMessage = createWeakUpMessage(calculateVictims(ActionResult.getInstance("calculate victims")));
         simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(weakUpMessage));
+        // reset ready player vote status
+        List<StompPrincipal> stompPrincipals = playerService.resetVoteCount();
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(stompPrincipals));
+        // TODO 2/1/21
+        // check if game finished
+
     }
 
 }

@@ -1,5 +1,6 @@
 package org.example.service;
 
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.example.action.WitchAction;
 import org.example.model.ActionResult;
@@ -7,6 +8,7 @@ import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.model.VoteReport;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 import static org.example.action.WitchAction.ANTIDOTE;
 import static org.example.action.WitchAction.POISON;
 import static org.example.service.GameService.RoleAction.*;
+import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINATION;
 
 /**
  * Created by daqwang on 12/12/20.
@@ -28,11 +31,13 @@ public class VoteService {
 
     private final PlayerService playerService;
     private final WitchAction witchAction;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
     @Autowired
-    public VoteService(final PlayerService playerService, final WitchAction witchAction) {
+    public VoteService(final PlayerService playerService, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
         this.witchAction = witchAction;
+        this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
     /**
@@ -46,6 +51,7 @@ public class VoteService {
         //only inGame user can vote and vote only inGame players
         StompPrincipal player = playerService.getPlayerByNickName(playerNickName);
         if (voter.isInGame() && validatePlayer(player)) {
+            voter.setHasVoted(true);
             player.voteBy(voter);
         } else {
             throw new RuntimeException("Player: " + voter.getName() + " no longer in game,can't vote");
@@ -67,7 +73,7 @@ public class VoteService {
 
         //players who still in game
         List<StompPrincipal> remainPlayers = playerService.getReadyPlayerList().stream().filter(StompPrincipal::isInGame).collect(Collectors.toList());
-        if (!CollectionUtils.isEmpty(remainPlayers)) {
+        if (CollectionUtils.isEmpty(remainPlayers)) {
             throw new RuntimeException("no available players");
         }
 
@@ -97,12 +103,13 @@ public class VoteService {
         Integer max = Collections.max(voteList);
         if (Collections.frequency(voteList, max) > 1) {
             //draw condition
-            List<StompPrincipal> drawList = remainPlayers.stream().filter(remainPlayer -> remainPlayer.getVoteCount().intValue() == max.intValue())
+            List<StompPrincipal> drawList = remainPlayers.stream()
+                    .filter(remainPlayer -> remainPlayer.getVoteCount().intValue() == max.intValue())
                     .collect(Collectors.toList());
             voteReport.setDrawList(drawList);
             voteReport.setIsDraw(true);
             String nameOfList = drawList.stream().map(StompPrincipal::getNickName).collect(Collectors.joining(", "));
-            voteReport.setMessage(String.format("Players: %s, have some amount of votes: %d", nameOfList, max));
+            voteReport.setMessage(String.format("Players: %s, have same amount of votes: %d", nameOfList, max));
         } else {
             voteReport.setIsDraw(false);
             voteReport.setDrawList(Collections.emptyList());
@@ -110,9 +117,8 @@ public class VoteService {
                     .findFirst().orElseThrow(() -> new RuntimeException("can't find the highest vote"));
             stompPrincipal.setInGame(false);
             voteReport.setMessage("Player: " + stompPrincipal.getNickName() + " out! ");
-            // TODO 12/12/20 broadcast user status, private user status
-
         }
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(playerService.getReadyPlayerList()));
     }
 
     /**
@@ -276,5 +282,19 @@ public class VoteService {
                     log.info("can't find player {} to kill", nickName);
                 });
         return wolfActionResult;
+    }
+
+    public void resetInGamePlayerVote() {
+        List<StompPrincipal> inGamePlayers = playerService.getReadyPlayerList();
+        inGamePlayers.forEach(player -> {
+            player.setHasVoted(false);
+            player.setVoteCount(0);
+            player.getVotedBySet().clear();
+        });
+
+    }
+
+    public void broadcastVoteStatus() {
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(playerService.getReadyPlayerList()));
     }
 }

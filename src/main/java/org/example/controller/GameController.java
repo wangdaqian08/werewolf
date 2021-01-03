@@ -93,7 +93,7 @@ public class GameController {
      */
     @GetMapping(value = "/startGame", produces = {MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> startGame() throws InterruptedException {
-        scheduler.startGame();
+        scheduler.startGameAgain();
         return ResponseEntity.ok("game started");
     }
 

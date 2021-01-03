@@ -1,8 +1,8 @@
 package org.example.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.example.model.ActionResult;
-import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.service.GameService;
 import org.example.service.GameStepService;
@@ -10,6 +10,7 @@ import org.example.service.PlayerService;
 import org.example.service.VoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,13 +44,13 @@ public class VoteController {
     /**
      * todo need to update to session ID replace nickname
      *
-     * @param action
-     * @param voterNickname
-     * @param nickName
-     * @return
+     * @param action        role action (kill,check,save,poisoning...)
+     * @param voterNickname the nickname of the player who make the vote
+     * @param nickName      the player's nickname who is been voted
+     * @return ActionResult
      */
     @GetMapping("/action/{action}/voter/{voterNickname}/player/{nickName}")
-    public ResponseEntity<ActionResult> vote(@PathVariable("action") String action, @PathVariable("voterNickname") String voterNickname, @PathVariable("nickName") String nickName) {
+    public ResponseEntity<ActionResult> action(@PathVariable("action") String action, @PathVariable("voterNickname") String voterNickname, @PathVariable("nickName") String nickName) {
         StompPrincipal voter = playerService.getPlayerByNickName(voterNickname);
         GameService.RoleAction playerAction = GameService.RoleAction.valueOf(action.trim().toUpperCase());
         //check if player has the right permission to perform the action
@@ -69,16 +70,51 @@ public class VoteController {
      */
     private boolean isActionAuthorised(final StompPrincipal voter, final GameService.RoleAction action) {
 
-        if (voter.getRole().equals(Role.WOLF)) {
-            return KILL.equals(action);
-        } else if (voter.getRole().equals(Role.WITCH)) {
-            return POISONING.equals(action) || SAVE.equals(action) || NOTHING.equals(action);
-        } else if (voter.getRole().equals(Role.SEER)) {
-            return CHECK.equals(action);
-        } else {
-            log.info("no matching role found:{}", voter.getRole().name());
-            return false;
+        switch (voter.getRole()) {
+            case WOLF:
+                return KILL.equals(action);
+            case WITCH:
+                return POISONING.equals(action) || SAVE.equals(action) || NOTHING.equals(action);
+            case SEER:
+                return CHECK.equals(action);
+            default:
+                log.info("no matching role found:{}", voter.getRole().name());
+                return false;
         }
     }
 
+    /**
+     * everyone vote for the person who has the suspec
+     *
+     * @param voterNickname
+     * @param playerNickname
+     * @return result of vote
+     */
+    @GetMapping(value = "/suspect/voterNickname/{voterNickname}/player/{playerNickname}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> vote(@PathVariable("voterNickname") String voterNickname, @PathVariable("playerNickname") String playerNickname) {
+        StompPrincipal voter = playerService.getPlayerByNickName(voterNickname);
+        if (validateVote(voterNickname, playerNickname)) {
+            voteService.vote(voter, playerNickname);
+            voteService.broadcastVoteStatus();
+            return ResponseEntity.ok("vote success");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("voter is not valida, voter has voted:" + voter.isHasVoted());
+        }
+    }
+
+    /**
+     * check the voter is inGame haven't vote and the player nickname is different from voter nick name.
+     *
+     * @param voterNickname  voter's nick name
+     * @param playerNickname other players the voter want to vote
+     * @return true: the nick names are valida and not empty, the voter is in game and haven't vote<br/>
+     * false: the voter is not in game or the nick names maybe empty
+     */
+    private boolean validateVote(final String voterNickname, final String playerNickname) {
+        if (voterNickname.equalsIgnoreCase(playerNickname) || StringUtils.isBlank(voterNickname)) {
+            return false;
+        }
+        StompPrincipal voter = playerService.getPlayerByNickName(voterNickname);
+        return voter.isInGame() && !voter.isHasVoted();
+    }
 }

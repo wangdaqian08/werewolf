@@ -167,18 +167,27 @@ $(document).ready(function () {
     }
 
     function showBroadcastMessageOutputForStatus(messageOutput) {
-        console.log(messageOutput)
         let onlinePlayersList = messageOutput;
         let playerListDiv = $('#player-list');
         playerListDiv.empty();
         $.each(onlinePlayersList, function (key, player) {
-
-            var readyStatusSpan;
+            let vote = "<span>&nbsp</span><img src='../img/voted.png' width='15' height='15' alt='voted'><span>&nbsp</span>"
+            let readyStatusSpan;
             if (player.isReady) {
+
                 let playerValue = player.nickName ? player.nickName : player.name;
-                readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerValue + "</span>&nbsp &nbsp<span>Ready!</span>"
+
+                if (!player.inGame) {
+                    playerValue = playerValue.strike();
+                }
+                readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>Ready!</span><span>&nbsp &nbsp</span>" + "<span id='playerName'>" + playerValue + "</span>"
+                if (player.hasVoted) {
+                    readyStatusSpan += vote
+                }
+
             } else {
-                readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Waiting...</span>"
+                // players not ready
+                readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>Waiting...</span><span>&nbsp &nbsp</span>" + player.name
             }
             playerListDiv.append("<br/>").append(readyStatusSpan);
         });
