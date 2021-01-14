@@ -8,6 +8,7 @@ import org.example.action.WerewolfAction;
 import org.example.action.WitchAction;
 import org.example.model.ActionResult;
 import org.example.model.GameMessage;
+import org.example.model.GameResult;
 import org.example.model.StompPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.example.utils.EndpointConstant.BROADCAST_DESTINATION;
@@ -33,8 +35,8 @@ import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINA
 public class GameStepService {
 
     private final static String CLOSE_EYES_ACTION_MESSAGE = "The sky goes dark, players close your eyes";
-    private final static String SAFE_ACTION_MESSAGE = "Last night no got killed";
-    private final static String WAKE_UP_ACTION_BASE_MESSAGE = "It's dawned. ";
+    private final static String SAFE_ACTION_MESSAGE = "no one got killed";
+    private final static String WAKE_UP_ACTION_BASE_MESSAGE = "It's dawned. Last night ";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final PlayerService playerService;
@@ -42,21 +44,27 @@ public class GameStepService {
     private final WerewolfAction werewolfAction;
     private final WitchAction witchAction;
     private final SeerAction seerAction;
+    private final GameService gameService;
     private final LinkedList<Callable<Object>> gameSteps = new LinkedList<>();
-
+    private final AtomicBoolean isGameStarted = new AtomicBoolean(false);
 
     @Autowired
-    public GameStepService(final PlayerService playerService, final WerewolfAction werewolfAction, final SeerAction seerAction, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate, final VoiceOutputService voiceOutputService) {
+    public GameStepService(final GameService gameService, final PlayerService playerService, final WerewolfAction werewolfAction, final SeerAction seerAction, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate, final VoiceOutputService voiceOutputService) {
 
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.voiceOutputService = voiceOutputService;
 
+        this.gameService = gameService;
         this.playerService = playerService;
         this.werewolfAction = werewolfAction;
         this.witchAction = witchAction;
         this.seerAction = seerAction;
 
         initGameActions();
+    }
+
+    public AtomicBoolean getIsGameStarted() {
+        return isGameStarted;
     }
 
 
@@ -121,6 +129,7 @@ public class GameStepService {
 
         try {
             List<Future<Object>> futures = executorService.invokeAll(gameSteps);
+            isGameStarted.getAndSet(true);
             List<Future<Object>> finished = new ArrayList<>();
             while (finished.size() != gameSteps.size()) {
                 finished = futures.stream().filter(Future::isDone)
@@ -141,12 +150,19 @@ public class GameStepService {
         // calculate victim report
         String weakUpMessage = createWeakUpMessage(calculateVictims(ActionResult.getInstance("calculate victims")));
         simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(weakUpMessage));
-        // reset ready player vote status
-        List<StompPrincipal> stompPrincipals = playerService.resetVoteCount();
-        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(stompPrincipals));
-        // TODO 2/1/21
-        // check if game finished
 
+        GameResult gameResult = gameService.isGameFinished(playerService.getInGamePlayers());
+        if (gameResult.isFinished()) {
+            //game finished
+            simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(gameResult.getMessage()));
+
+        } else {
+            // reset ready player vote status
+            List<StompPrincipal> stompPrincipals = playerService.resetVoteCount();
+            simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(stompPrincipals));
+            simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage("Start Voting...."));
+            isGameStarted.getAndSet(false);
+        }
     }
 
 }

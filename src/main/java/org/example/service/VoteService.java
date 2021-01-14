@@ -54,7 +54,7 @@ public class VoteService {
             voter.setHasVoted(true);
             player.voteBy(voter);
         } else {
-            throw new RuntimeException("Player: " + voter.getName() + " no longer in game,can't vote");
+            throw new RuntimeException("Player: " + player.getName() + "or Voter: " + voter.getName() + " no longer in game,can't vote");
         }
     }
 

@@ -61,6 +61,11 @@ $(document).ready(function () {
                 console.log("Receive broadcast message player ready status");
                 showBroadcastMessageOutputForStatus(JSON.parse(messageOutput.body));
             });
+            this.subscribe('/broadcast/vote/result/messages', function (messageOutput) {
+                console.log("Receive broadcast vote results");
+                showBroadcastMessageOutputForVoteResult(JSON.parse(messageOutput.body));
+                clearVoteStatusIcon();
+            });
 
             this.subscribe('/user/private/messages', function (messageOutput) {
                 console.log("Receive private message");
@@ -154,7 +159,6 @@ $(document).ready(function () {
         } else {
             $('#btnReady').hide();
         }
-
     }
 
     function ready(userId, nickname) {
@@ -171,26 +175,55 @@ $(document).ready(function () {
         let playerListDiv = $('#player-list');
         playerListDiv.empty();
         $.each(onlinePlayersList, function (key, player) {
-            let vote = "<span>&nbsp</span><img src='../img/voted.png' width='15' height='15' alt='voted'><span>&nbsp</span>"
-            let readyStatusSpan;
+            let vote = "<span>&nbsp</span><img class='vote' src='../img/voted.png' width='15' height='15' alt='voted'><span>&nbsp</span>"
+            let playerStatusSpan;
             if (player.isReady) {
 
                 let playerValue = player.nickName ? player.nickName : player.name;
-
+                let playerStatus = "Ready!";
                 if (!player.inGame) {
                     playerValue = playerValue.strike();
+                    playerStatus = "Dead!"
                 }
-                readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>Ready!</span><span>&nbsp &nbsp</span>" + "<span id='playerName'>" + playerValue + "</span>"
+                let playerNameSpan = "'playerName_" + player.name.toString() + "'";
+                playerStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerStatus + "</span><span>&nbsp &nbsp</span>" + "<span id=" + playerNameSpan + ">" + playerValue + "</span>"
                 if (player.hasVoted) {
-                    readyStatusSpan += vote
+                    playerStatusSpan += vote
                 }
 
             } else {
                 // players not ready
-                readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>Waiting...</span><span>&nbsp &nbsp</span>" + player.name
+                playerStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>Waiting...</span><span>&nbsp &nbsp</span>" + player.name
             }
-            playerListDiv.append("<br/>").append(readyStatusSpan);
+            playerListDiv.append("<br/>").append(playerStatusSpan);
+            highlightMyself(player);
         });
+    }
+
+    function highlightMyself(player) {
+        let nickname = $('#from').val();
+        if (player.nickName === nickname) {
+            let playerNameSpanId = "#playerName_" + player.name.toString();
+            $(playerNameSpanId).css({'background-color': '#c3c2c2'});
+        }
+    }
+
+    function showBroadcastMessageOutputForVoteResult(voteResult) {
+
+        console.log(voteResult);
+        // TODO 10/1/21
+        // pop up window for vote result message
+        if (voteResult.isDraw) {
+            console.log(voteResult.message);
+            console.log(voteResult.drawList)
+        } else {
+            console.log(voteResult.message);
+        }
+    }
+
+    function clearVoteStatusIcon() {
+        $(".vote").remove();
+        console.log("clearVoteStatusIcon called");
     }
 
     function showMessageOutput(messageOutput) {

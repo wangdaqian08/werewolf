@@ -2,6 +2,7 @@ package org.example.schedule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.GameMessage;
+import org.example.model.GameResult;
 import org.example.model.StompPrincipal;
 import org.example.model.VoteReport;
 import org.example.service.GameService;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.example.utils.EndpointConstant.BROADCAST_DESTINATION;
+import static org.example.utils.EndpointConstant.BROADCAST_VOTE_RESULT_DESTINATION;
 
 /**
  * Created by daqwang on 12/12/20.
@@ -59,24 +61,27 @@ public class Scheduler {
         }
     }
 
-    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    @Scheduled(fixedDelay = 30000, initialDelay = 60000)
     public void broadcastVoteResult() {
         VoteReport voteReport = voteService.checkVoteStatus();
         if (voteReport.getVoteCompleted()) {
 
             voteReport = voteService.generateVoteResult();
-            log.info("voteReport:{}", voteReport);
+            log.info("vote completed, VoteReport:{}", voteReport);
+            simpMessagingTemplate.convertAndSend(BROADCAST_VOTE_RESULT_DESTINATION, voteReport);
             voteService.broadcastVoteStatus();
-            // TODO 2/1/21
-            // broadcast vote result
-
-            // TODO 2/1/21
-            // check if game finished
             voteService.resetInGamePlayerVote();
-
             VoteReport.reset();
-        } else {
-            log.info("vote report completed:{}", voteReport.getVoteCompleted());
+
+            GameResult gameResult = gameService.isGameFinished(playerService.getInGamePlayers());
+            simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(gameResult.getMessage()));
+            if (gameResult.isFinished()) {
+                log.info("######### Game Finished #########");
+            } else {
+                if (!gameStepService.getIsGameStarted().get() && !voteReport.getIsDraw()) {
+                    startGameAgain();
+                }
+            }
         }
     }
 
@@ -93,8 +98,13 @@ public class Scheduler {
     }
 
 
-    public void startGameAgain() throws InterruptedException {
+    public void startGameAgain() {
+        simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage("start next round..."));
         gameStepService.initGameActions();
-        gameStepService.startGame();
+        try {
+            gameStepService.startGame();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

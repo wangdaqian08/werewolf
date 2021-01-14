@@ -1,6 +1,7 @@
 package org.example.service;
 
 import org.apache.commons.lang3.StringUtils;
+import org.example.model.GameResult;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.slf4j.Logger;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.thymeleaf.util.ListUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.example.utils.EndpointConstant.PRIVATE_ROLE_DESTINATION;
@@ -132,7 +135,7 @@ public class GameService {
      * @param remainPlayers player who still in game.
      * @return result of game, true:continue, false:game finish
      */
-    public Map<Boolean, String> isGameFinished(List<StompPrincipal> remainPlayers) {
+    public GameResult isGameFinished(List<StompPrincipal> remainPlayers) {
 
         List<StompPrincipal> remainWolves = remainPlayers.stream().filter(remainPlayer -> remainPlayer.getRole().equals(Role.WOLF))
                 .collect(Collectors.toList());
@@ -142,21 +145,19 @@ public class GameService {
 
         List<StompPrincipal> remainFeatures = remainPlayers.stream().filter((StompPrincipal remainPlayer) -> !remainPlayer.getRole().equals(Role.VILLAGER) && !remainPlayer.getRole().equals(Role.WOLF)).collect(Collectors.toList());
 
-        Map<Boolean, String> results = new HashMap<>();
-        String message = "Game continue";
-        results.put(false, message);
+        GameResult results = new GameResult(false, "Game continue");
 
         //check winning condition
 
         if (remainWolves.size() == 0) {
-            message = "Villagers Win";
-            results.put(true, message);
+            results.setMessage("Villagers Win");
+            results.setFinished(true);
             return results;
         }
 
         if (remainFeatures.size() == 0 || remainVillagers.size() == 0) {
-            message = "Wolves Win";
-            results.put(true, message);
+            results.setMessage("Wolves Win");
+            results.setFinished(true);
             return results;
         }
 
