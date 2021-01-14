@@ -37,20 +37,22 @@ public class PlayerService {
     }
 
 
-    public StompPrincipal createPlayer() {
+    public StompPrincipal createPlayer(final String sessionId) {
         String userId = UserIdGenerator.generateUserId();
-        StompPrincipal stompPrincipal = new StompPrincipal(userId);
-        while (players.contains(stompPrincipal)) {
-            stompPrincipal.setName(UserIdGenerator.generateUserId());
+        StompPrincipal stompPrincipal = new StompPrincipal(userId, sessionId);
+        if (players.contains(stompPrincipal)) {
+            return players.stream()
+                    .filter(player -> player.getSessionId().equalsIgnoreCase(sessionId))
+                    .findFirst().orElse(null);
         }
         players.add(stompPrincipal);
         return stompPrincipal;
     }
 
 
-    public void cleanAllUsers() {
+    public void removePlayerBySessionId(final String sessionId) {
         if (!ListUtils.isEmpty(players)) {
-            players.clear();
+            players.removeIf(player -> player.getSessionId().equalsIgnoreCase(sessionId));
         }
     }
 
@@ -61,6 +63,12 @@ public class PlayerService {
     public List<StompPrincipal> getInGamePlayersByRole(final Role role) {
         return this.getReadyPlayerList().stream()
                 .filter(player -> player.getRole().equals(role) && player.isInGame())
+                .collect(Collectors.toList());
+    }
+
+    public List<StompPrincipal> getInGamePlayers() {
+        return this.getReadyPlayerList().stream()
+                .filter(StompPrincipal::isInGame)
                 .collect(Collectors.toList());
     }
 
@@ -79,11 +87,11 @@ public class PlayerService {
     }
 
 
-    public StompPrincipal getPlayerByName(final String name) {
+    public StompPrincipal getPlayerByNickName(final String nickName) {
         if (CollectionUtils.isEmpty(players)) {
-            throw new RuntimeException("player list not ready,can't find name: " + name);
+            throw new RuntimeException("player list not ready,can't find nickName: " + nickName);
         }
-        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getName().equalsIgnoreCase(name)).findFirst();
+        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getNickName().equalsIgnoreCase(nickName)).findFirst();
         return optionalStompPrincipal.orElse(null);
     }
 
@@ -98,7 +106,10 @@ public class PlayerService {
         if (CollectionUtils.isEmpty(readyPlayerList)) {
             throw new RuntimeException("no ready players yet");
         }
-        readyPlayerList.forEach(readyPlayer -> readyPlayer.setVoteCount(0));
+        readyPlayerList.forEach(readyPlayer -> {
+            readyPlayer.setVoteCount(0);
+            readyPlayer.setHasVoted(false);
+        });
         return readyPlayerList;
     }
 }

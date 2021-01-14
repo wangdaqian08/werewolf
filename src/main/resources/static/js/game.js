@@ -25,7 +25,7 @@ $(document).ready(function () {
                     findUserId(str);
                     var div = "<div>" + str + "</div>";
 
-                    $("#debug").append(div);
+                    $("#debug").prepend(div);
                 };
             }
         }
@@ -60,6 +60,11 @@ $(document).ready(function () {
             this.subscribe('/broadcast/player/status', function (messageOutput) {
                 console.log("Receive broadcast message player ready status");
                 showBroadcastMessageOutputForStatus(JSON.parse(messageOutput.body));
+            });
+            this.subscribe('/broadcast/vote/result/messages', function (messageOutput) {
+                console.log("Receive broadcast vote results");
+                showBroadcastMessageOutputForVoteResult(JSON.parse(messageOutput.body));
+                clearVoteStatusIcon();
             });
 
             this.subscribe('/user/private/messages', function (messageOutput) {
@@ -154,7 +159,6 @@ $(document).ready(function () {
         } else {
             $('#btnReady').hide();
         }
-
     }
 
     function ready(userId, nickname) {
@@ -167,21 +171,59 @@ $(document).ready(function () {
     }
 
     function showBroadcastMessageOutputForStatus(messageOutput) {
-        console.log(messageOutput)
         let onlinePlayersList = messageOutput;
         let playerListDiv = $('#player-list');
         playerListDiv.empty();
         $.each(onlinePlayersList, function (key, player) {
-
-            var readyStatusSpan;
+            let vote = "<span>&nbsp</span><img class='vote' src='../img/voted.png' width='15' height='15' alt='voted'><span>&nbsp</span>"
+            let playerStatusSpan;
             if (player.isReady) {
+
                 let playerValue = player.nickName ? player.nickName : player.name;
-                readyStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerValue + "</span>&nbsp &nbsp<span>Ready!</span>"
+                let playerStatus = "Ready!";
+                if (!player.inGame) {
+                    playerValue = playerValue.strike();
+                    playerStatus = "Dead!"
+                }
+                let playerNameSpan = "'playerName_" + player.name.toString() + "'";
+                playerStatusSpan = "<img src='../img/circle_green_512.png' alt='readyIcon' width='15' height='15'/>&nbsp<span>" + playerStatus + "</span><span>&nbsp &nbsp</span>" + "<span id=" + playerNameSpan + ">" + playerValue + "</span>"
+                if (player.hasVoted) {
+                    playerStatusSpan += vote
+                }
+
             } else {
-                readyStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>" + player.name + "</span>&nbsp &nbsp<span>Waiting...</span>"
+                // players not ready
+                playerStatusSpan = "<img src='../img/circle_red_600.png' alt='notReadyIcon' width='15' height='15'/>&nbsp<span>Waiting...</span><span>&nbsp &nbsp</span>" + player.name
             }
-            playerListDiv.append("<br/>").append(readyStatusSpan);
+            playerListDiv.append("<br/>").append(playerStatusSpan);
+            highlightMyself(player);
         });
+    }
+
+    function highlightMyself(player) {
+        let nickname = $('#from').val();
+        if (player.nickName === nickname) {
+            let playerNameSpanId = "#playerName_" + player.name.toString();
+            $(playerNameSpanId).css({'background-color': '#c3c2c2'});
+        }
+    }
+
+    function showBroadcastMessageOutputForVoteResult(voteResult) {
+
+        console.log(voteResult);
+        // TODO 10/1/21
+        // pop up window for vote result message
+        if (voteResult.isDraw) {
+            console.log(voteResult.message);
+            console.log(voteResult.drawList)
+        } else {
+            console.log(voteResult.message);
+        }
+    }
+
+    function clearVoteStatusIcon() {
+        $(".vote").remove();
+        console.log("clearVoteStatusIcon called");
     }
 
     function showMessageOutput(messageOutput) {
@@ -193,8 +235,7 @@ $(document).ready(function () {
         $('#player-id').text(messageOutput.name);
     }
 
-    function showBroadcastMessageOutput(messageOutput) {
-        console.log("broadcast message:" + messageOutput.message);
+    function scrollToLatestMsg(messageOutput) {
         let space = "&nbsp";
         let sender = "<span>" + messageOutput.sender + "</span>"
         let time = "<span>" + messageOutput.time + "</span>"
@@ -203,6 +244,11 @@ $(document).ready(function () {
         var div = document.getElementById('system-message');
         $('#system-message').append(new_message)
             .animate({scrollTop: div.scrollHeight - div.clientHeight}, 700);
+    }
+
+    function showBroadcastMessageOutput(messageOutput) {
+        console.log("broadcast message:" + messageOutput.message);
+        scrollToLatestMsg(messageOutput);
     }
 
     function showPrivateMessageOutputForRole(messageOutput) {
@@ -219,12 +265,13 @@ $(document).ready(function () {
         }
         // subscribe role destination
         myStomp.subscribePrivateRoleChannel(role_destination, function (roleMessage) {
-            handleRoleActionMessage(roleMessage.body);
+            handleRoleActionMessage(JSON.parse(roleMessage.body));
         });
     }
 
     function handleRoleActionMessage(roleMessage) {
-        console.log('private role message' + roleMessage)
+        console.log('private role message' + roleMessage.message)
+        scrollToLatestMsg(roleMessage);
     }
 
 

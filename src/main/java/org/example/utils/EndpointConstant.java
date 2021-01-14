@@ -10,6 +10,7 @@ public class EndpointConstant {
 
     //destinations for server to send messages to client
     public final static String BROADCAST_DESTINATION = "/broadcast/messages";
+    public final static String BROADCAST_VOTE_RESULT_DESTINATION = "/broadcast/vote/result/messages";
     public final static String BROADCAST_PLAYER_STATUS_DESTINATION = "/broadcast/player/status";
     public final static String PRIVATE_DESTINATION = "/private/messages";
     public final static String PRIVATE_ROLE_DESTINATION = "/private/role";

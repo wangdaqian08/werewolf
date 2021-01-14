@@ -86,5 +86,16 @@ public class GameController {
         return ResponseEntity.ok(playerService.showPlayersStatus());
     }
 
+    /**
+     * todo this method should be triggered, once the vote are finished
+     *
+     * @return
+     */
+    @GetMapping(value = "/startGame", produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<String> startGame() throws InterruptedException {
+        scheduler.startGameAgain();
+        return ResponseEntity.ok("game started");
+    }
+
 
 }

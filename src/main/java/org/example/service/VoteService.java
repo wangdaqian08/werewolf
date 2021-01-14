@@ -1,15 +1,25 @@
 package org.example.service;
 
+import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
+import org.example.action.WitchAction;
+import org.example.model.ActionResult;
+import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.model.VoteReport;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.example.action.WitchAction.ANTIDOTE;
+import static org.example.action.WitchAction.POISON;
+import static org.example.service.GameService.RoleAction.*;
+import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINATION;
 
 /**
  * Created by daqwang on 12/12/20.
@@ -20,26 +30,31 @@ public class VoteService {
 
 
     private final PlayerService playerService;
+    private final WitchAction witchAction;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
     @Autowired
-    public VoteService(final PlayerService playerService) {
+    public VoteService(final PlayerService playerService, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
+        this.witchAction = witchAction;
+        this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
     /**
      * player vote the others players based on speech.
      *
-     * @param voter      the player who make the vote
-     * @param playerName the player who will be voted
+     * @param voter          the player who make the vote
+     * @param playerNickName the player who will be voted
      */
-    public void vote(final StompPrincipal voter, final String playerName) {
+    public void vote(final StompPrincipal voter, final String playerNickName) {
 
         //only inGame user can vote and vote only inGame players
-        StompPrincipal player = playerService.getPlayerByName(playerName);
+        StompPrincipal player = playerService.getPlayerByNickName(playerNickName);
         if (voter.isInGame() && validatePlayer(player)) {
+            voter.setHasVoted(true);
             player.voteBy(voter);
         } else {
-            throw new RuntimeException("Player: " + voter.getName() + " no longer in game,can't vote");
+            throw new RuntimeException("Player: " + player.getName() + "or Voter: " + voter.getName() + " no longer in game,can't vote");
         }
     }
 
@@ -58,7 +73,7 @@ public class VoteService {
 
         //players who still in game
         List<StompPrincipal> remainPlayers = playerService.getReadyPlayerList().stream().filter(StompPrincipal::isInGame).collect(Collectors.toList());
-        if (!CollectionUtils.isEmpty(remainPlayers)) {
+        if (CollectionUtils.isEmpty(remainPlayers)) {
             throw new RuntimeException("no available players");
         }
 
@@ -88,12 +103,13 @@ public class VoteService {
         Integer max = Collections.max(voteList);
         if (Collections.frequency(voteList, max) > 1) {
             //draw condition
-            List<StompPrincipal> drawList = remainPlayers.stream().filter(remainPlayer -> remainPlayer.getVoteCount().intValue() == max.intValue())
+            List<StompPrincipal> drawList = remainPlayers.stream()
+                    .filter(remainPlayer -> remainPlayer.getVoteCount().intValue() == max.intValue())
                     .collect(Collectors.toList());
             voteReport.setDrawList(drawList);
             voteReport.setIsDraw(true);
             String nameOfList = drawList.stream().map(StompPrincipal::getNickName).collect(Collectors.joining(", "));
-            voteReport.setMessage(String.format("Players: %s, have some amount of votes: %d", nameOfList, max));
+            voteReport.setMessage(String.format("Players: %s, have same amount of votes: %d", nameOfList, max));
         } else {
             voteReport.setIsDraw(false);
             voteReport.setDrawList(Collections.emptyList());
@@ -101,11 +117,15 @@ public class VoteService {
                     .findFirst().orElseThrow(() -> new RuntimeException("can't find the highest vote"));
             stompPrincipal.setInGame(false);
             voteReport.setMessage("Player: " + stompPrincipal.getNickName() + " out! ");
-            // TODO 12/12/20 broadcast user status, private user status
-
         }
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(playerService.getReadyPlayerList()));
     }
 
+    /**
+     * check remaining players has finished the vote.
+     *
+     * @return VoteReport
+     */
     public VoteReport checkVoteStatus() {
         List<StompPrincipal> remainPlayers = playerService.getReadyPlayerList().stream().filter(StompPrincipal::isInGame).collect(Collectors.toList());
         VoteReport voteReport = VoteReport.getInstance();
@@ -128,5 +148,153 @@ public class VoteService {
         }
 
         return voteReport;
+    }
+
+    public ActionResult handleRoleAction(final StompPrincipal voter, final String nickName, final GameService.RoleAction roleAction) {
+
+        switch (roleAction) {
+            case CHECK:
+                return handleSeerCheckAction(voter, nickName);
+            case KILL:
+                return handleWolfKillAction(voter, nickName);
+            case SAVE:
+                return handleWitchHelpAction(voter, nickName);
+            case POISONING:
+                return handleWitchPoisonAction(voter, nickName);
+            case NOTHING:
+                return handleWitchDoNothingAction(voter, null);
+            default:
+                throw new RuntimeException("can't find match action:" + roleAction.name());
+        }
+    }
+
+    private ActionResult handleWitchDoNothingAction(StompPrincipal voter, Object o) {
+
+        voter.setHasVoted(true);
+        return ActionResult.getInstance("witch did nothing");
+    }
+
+    /**
+     * witch save player by player nick name.
+     *
+     * @param nickName player nick name need to be saved
+     * @return ActionResult
+     */
+    private ActionResult handleWitchHelpAction(final StompPrincipal voter, final String nickName) {
+
+        List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
+        ActionResult witchHelpActionResult = ActionResult.getInstance("handle witch help action");
+        inGamePlayers.stream()
+                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .findFirst()
+                .ifPresentOrElse((player) -> {
+
+                    if (witchAction.consumeAvailableWitchItem(ANTIDOTE)) {
+                        witchHelpActionResult.getResultPlayer().put(player, SAVE);
+                        witchHelpActionResult.setResult("witch finish the help action");
+                    } else {
+                        witchHelpActionResult.setResult("witch can't finish the help action, no available " + ANTIDOTE);
+                    }
+                    voter.setHasVoted(true);
+                }, () -> {
+                    throw new RuntimeException("can't find player " + nickName + "to check");
+                });
+        return witchHelpActionResult;
+    }
+
+
+    /**
+     * handle witch poison action for player, by the play nickname.<br/>
+     * set player inGame is false<br/>
+     * set voter is voted to true<br/>
+     *
+     * @param voter    the witch player
+     * @param nickName the player's nickname to be poisoned
+     * @return ActionResult
+     */
+    private ActionResult handleWitchPoisonAction(StompPrincipal voter, String nickName) {
+        List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
+        ActionResult witchPoisonActionResult = ActionResult.getInstance("handle witch poison action");
+        inGamePlayers.stream()
+                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .findFirst()
+                .ifPresentOrElse((player) -> {
+                    if (witchAction.consumeAvailableWitchItem(POISON)) {
+                        witchPoisonActionResult.getResultPlayer().put(player, POISONING);
+                        witchPoisonActionResult.setResult("witch finish the poison action");
+                    } else {
+                        witchPoisonActionResult.setResult("no available " + POISON + " available");
+                    }
+                    voter.setHasVoted(true);
+                }, () -> {
+                    throw new RuntimeException("can't find player " + nickName + "to check");
+                });
+        return witchPoisonActionResult;
+    }
+
+    /**
+     * handle seer check action by player nickname.
+     * set seer isVoted=true, return the checked player object
+     *
+     * @param voter    seer
+     * @param nickName the player's nickname need to be checked
+     * @return ActionResult contains the checked player
+     */
+    private ActionResult handleSeerCheckAction(StompPrincipal voter, String nickName) {
+        List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
+        ActionResult seerActionResult = ActionResult.getInstance("handle seer check action");
+        inGamePlayers.stream()
+                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .findFirst()
+                .ifPresentOrElse((player) -> {
+                    seerActionResult.getResultPlayer().put(player, CHECK);
+                    seerActionResult.setResult("seer finish the check action");
+                    voter.setHasVoted(true);
+                }, () -> {
+                    throw new RuntimeException("can't find player " + nickName + "to check");
+                });
+        return seerActionResult;
+    }
+
+    /**
+     * handle wolf kill action by player nick name.
+     *
+     * @param voter    the wolf player
+     * @param nickName the player will be killed
+     * @return ActionResult
+     */
+    private ActionResult handleWolfKillAction(final StompPrincipal voter, final String nickName) {
+
+        List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
+        final ActionResult wolfActionResult = ActionResult.getInstance("handle wolf kill action");
+        inGamePlayers.stream()
+                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .findFirst()
+                .ifPresentOrElse((player) -> {
+                    wolfActionResult.getResultPlayer().put(player, KILL);
+                    wolfActionResult.setResult("wolf finish the kill action");
+                    voter.setHasVoted(true);
+                }, () -> {
+                    //todo need to refactor this code: second wolf vote for the same player can't be found, need to update the second wolf isVote to true
+                    if (playerService.getInGamePlayersByRole(Role.WOLF).stream().filter(StompPrincipal::isHasVoted).collect(Collectors.toList()).size() == 1) {
+                        voter.setHasVoted(true);
+                    }
+                    log.info("can't find player {} to kill", nickName);
+                });
+        return wolfActionResult;
+    }
+
+    public void resetInGamePlayerVote() {
+        List<StompPrincipal> inGamePlayers = playerService.getReadyPlayerList();
+        inGamePlayers.forEach(player -> {
+            player.setHasVoted(false);
+            player.setVoteCount(0);
+            player.getVotedBySet().clear();
+        });
+
+    }
+
+    public void broadcastVoteStatus() {
+        simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(playerService.getReadyPlayerList()));
     }
 }

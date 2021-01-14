@@ -1,11 +1,11 @@
 package org.example.handler;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
@@ -17,29 +17,34 @@ import java.util.Map;
  * Created by daqwang on 24/11/20.
  */
 @Component
+@Slf4j
 public class PlayerHandshakeHandler extends DefaultHandshakeHandler {
 
-    private Logger logger = LoggerFactory.getLogger(PlayerHandshakeHandler.class);
     private final PlayerService playerService;
 
     @Autowired
-    public PlayerHandshakeHandler(PlayerService playerService){
+    public PlayerHandshakeHandler(PlayerService playerService) {
         this.playerService = playerService;
     }
 
 
-
     @Override
     protected Principal determineUser(ServerHttpRequest request, WebSocketHandler wsHandler, Map<String, Object> attributes) {
-        StompPrincipal player = playerService.createPlayer();
-        logger.info("player:{},created", player.getName());
-//        if (request instanceof ServletServerHttpRequest) {
-//            ServletServerHttpRequest servletRequest
-//                    = (ServletServerHttpRequest) request;
-//            HttpSession session = servletRequest
-//                    .getServletRequest().getSession();
-//            attributes.put("sessionId", session.getId());
-//        }
-        return player;
+
+        if (request instanceof ServletServerHttpRequest) {
+            ServletServerHttpRequest servletRequest
+                    = (ServletServerHttpRequest) request;
+            String sessionId = servletRequest
+                    .getServletRequest().getSession().getId();
+            // TODO 26/12/20
+            // need to remove the testValue when resolve duplicate players issue or at production
+            String testValue = String.valueOf(System.currentTimeMillis());
+            String sessionId2 = sessionId + testValue;
+            StompPrincipal player = playerService.createPlayer(sessionId2);
+            log.info("player:{},created", player.getName());
+            attributes.put("sessionId", sessionId);
+            return player;
+        }
+        return null;
     }
 }

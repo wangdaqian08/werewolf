@@ -28,7 +28,7 @@ public class StompPrincipal implements Principal {
     private String nickName;
     private Integer voteCount = 0;
     private boolean hasVoted = false;
-    private Set<StompPrincipal> votedBySet = new HashSet<>();
+    private Set<String> votedBySet = new HashSet<>();
 
     public StompPrincipal(String name) {
         this.name = name;
@@ -74,7 +74,7 @@ public class StompPrincipal implements Principal {
     }
 
     public void voteBy(StompPrincipal voter) {
-        this.votedBySet.add(voter);
+        this.votedBySet.add(voter.getNickName());
         //increase vote count
         this.setVoteCount(this.getVoteCount() + 1);
     }

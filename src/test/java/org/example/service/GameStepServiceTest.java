@@ -37,18 +37,18 @@ public class GameStepServiceTest {
     public void setup() {
 
         this.playerService = new PlayerService();
-        this.voteService = new VoteService(playerService);
-        this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
         VoiceOutputService voiceOutputService = new VoiceOutputService();
         SeerAction seerAction = new SeerAction(playerService, simpMessagingTemplate, voiceOutputService);
         WerewolfAction werewolfAction = new WerewolfAction(playerService, simpMessagingTemplate, voiceOutputService);
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.gameStepService = new GameStepService(werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
+        this.voteService = new VoteService(playerService, witchAction, simpMessagingTemplate);
+        this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
+        this.gameStepService = new GameStepService(gameService, playerService, werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
 
     }
 
     @Test
-    public void testGameSteps() {
+    public void testGameSteps() throws InterruptedException {
         gameStepService.startGame();
     }
 
@@ -71,7 +71,7 @@ public class GameStepServiceTest {
     public List<StompPrincipal> createPlayers(int size, String nickname) {
         List<StompPrincipal> list = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            list.add(playerService.createPlayer());
+            list.add(playerService.createPlayer(String.valueOf(System.currentTimeMillis())));
         }
         list.forEach(player -> {
             player.setNickName(nickname);
