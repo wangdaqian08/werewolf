@@ -1,5 +1,6 @@
 package org.example.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.example.model.GameResult;
 import org.example.model.Role;
@@ -17,18 +18,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.example.config.VoiceProperties.CONFIRM_IDENTITY_FILE_NAME;
 import static org.example.utils.EndpointConstant.PRIVATE_ROLE_DESTINATION;
 
 /**
  * Created by daqwang on 28/11/20.
  */
 @Service
+@Slf4j
 public class GameService {
 
 
+    public static final String VILLAGERS_WIN = "Villagers Win";
+    public static final String WOLVES_WIN = "Wolves Win";
     private final Logger logger = LoggerFactory.getLogger(GameService.class);
     private final PlayerService playerService;
-    private final VoteService voteService;
+    private final VoiceOutputService voiceOutputService;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     /**
@@ -65,9 +70,9 @@ public class GameService {
     }
 
     @Autowired
-    public GameService(final PlayerService playerService, final VoteService voteService, final SimpMessagingTemplate simpMessagingTemplate) {
+    public GameService(final VoiceOutputService voiceOutputService, final PlayerService playerService, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
-        this.voteService = voteService;
+        this.voiceOutputService = voiceOutputService;
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
@@ -85,6 +90,13 @@ public class GameService {
             stompPrincipals.forEach(stompPrincipal -> {
                 simpMessagingTemplate.convertAndSendToUser(stompPrincipal.getName(), PRIVATE_ROLE_DESTINATION, stompPrincipal);
             });
+            voiceOutputService.speak(CONFIRM_IDENTITY_FILE_NAME);
+            log.info("speak:{}", CONFIRM_IDENTITY_FILE_NAME);
+            try {
+                Thread.sleep(5000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             return stompPrincipals;
         }
     }
@@ -150,13 +162,13 @@ public class GameService {
         //check winning condition
 
         if (remainWolves.size() == 0) {
-            results.setMessage("Villagers Win");
+            results.setMessage(VILLAGERS_WIN);
             results.setFinished(true);
             return results;
         }
 
         if (remainFeatures.size() == 0 || remainVillagers.size() == 0) {
-            results.setMessage("Wolves Win");
+            results.setMessage(WOLVES_WIN);
             results.setFinished(true);
             return results;
         }

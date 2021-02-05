@@ -1,6 +1,7 @@
 package org.example.config;
 
 
+import javazoom.jlgui.basicplayer.BasicPlayer;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,7 +19,11 @@ public class ApplicationConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "voice")
     public VoiceProperties getVoiceProperties() {
-        VoiceProperties voiceProperties = new VoiceProperties();
-        return voiceProperties;
+        return new VoiceProperties();
+    }
+
+    @Bean
+    public BasicPlayer getBasicPlayer() {
+        return new BasicPlayer();
     }
 }

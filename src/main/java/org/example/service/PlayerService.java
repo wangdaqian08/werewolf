@@ -95,6 +95,14 @@ public class PlayerService {
         return optionalStompPrincipal.orElse(null);
     }
 
+    public StompPrincipal getPlayerByName(final String name) {
+        if (CollectionUtils.isEmpty(players)) {
+            throw new RuntimeException("player list not ready,can't find name: " + name);
+        }
+        Optional<StompPrincipal> optionalStompPrincipal = players.stream().filter(player -> player.getName().equalsIgnoreCase(name)).findFirst();
+        return optionalStompPrincipal.orElse(null);
+    }
+
 
     /**
      * reset all ready players' vote count to 0

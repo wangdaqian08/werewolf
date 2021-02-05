@@ -23,8 +23,8 @@ public class VoteReport {
     @JsonIgnore
     private static VoteReport voteReport;
     private String message;
-    private Boolean isDraw;
-    private Boolean voteCompleted;
+    private Boolean isDraw = false;
+    private Boolean voteCompleted = false;
     private Map<StompPrincipal, Set<String>> details = new HashMap<>();
     private List<StompPrincipal> drawList;
 

@@ -6,6 +6,7 @@ import org.example.action.SeerAction;
 import org.example.action.TransitAction;
 import org.example.action.WerewolfAction;
 import org.example.action.WitchAction;
+import org.example.config.VoiceProperties;
 import org.example.model.ActionResult;
 import org.example.model.GameMessage;
 import org.example.model.GameResult;
@@ -71,13 +72,13 @@ public class GameStepService {
     public void initGameActions() {
         ActionResult actionResult = ActionResult.getInstance("calculate victim");
         actionResult.reset();
-        gameSteps.offer(createTransitTimeAction(CLOSE_EYES_ACTION_MESSAGE, 10));
+        gameSteps.offer(createTransitTimeAction(VoiceProperties.SKY_DARK_FILE_NAME, 3));
         gameSteps.offer(werewolfAction);
         gameSteps.offer(createTransitTimeAction("start soon....", 5));
         gameSteps.offer(seerAction);
         gameSteps.offer(createTransitTimeAction("start soon....", 5));
         gameSteps.offer(witchAction);
-        gameSteps.offer(createTransitTimeAction("role actions finished", 10));
+        gameSteps.offer(createTransitTimeAction("role actions finished", 1));
 
     }
 
@@ -112,9 +113,11 @@ public class GameStepService {
 
     private String createWeakUpMessage(List<StompPrincipal> victims) {
         if (CollectionUtils.isEmpty(victims)) {
+            voiceOutputService.speak(VoiceProperties.SAFE_NIGHT_FILE_NAME);
             return WAKE_UP_ACTION_BASE_MESSAGE + SAFE_ACTION_MESSAGE;
         } else {
             String victimNames = victims.stream().map(StompPrincipal::getNickName).collect(Collectors.joining(","));
+            voiceOutputService.speak(VoiceProperties.VICTIM_NIGHT_FILE_NAME);
             return WAKE_UP_ACTION_BASE_MESSAGE + victimNames + " dead";
         }
     }
@@ -125,7 +128,7 @@ public class GameStepService {
     }
 
     public void startGame() throws InterruptedException {
-        //execute one by one, werewolvesActions execute first, when finished,execute witchActions, when withcActions finished execute seerActions
+        //execute one by one, werewolvesActions execute first, when finished,execute witchActions, when witchActions finished execute seerActions
 
         try {
             List<Future<Object>> futures = executorService.invokeAll(gameSteps);
@@ -140,10 +143,12 @@ public class GameStepService {
             gameSteps.clear();
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } finally {
-            executorService.awaitTermination(5, TimeUnit.SECONDS);
-            log.info("tasks shutdown:{}", executorService.isShutdown());
         }
+
+//        finally {
+//            executorService.awaitTermination(15, TimeUnit.MINUTES);
+//            log.info("tasks shutdown:{}", executorService.isShutdown());
+//        }
         log.info("all actions are finished");
 
 
@@ -154,12 +159,18 @@ public class GameStepService {
         GameResult gameResult = gameService.isGameFinished(playerService.getInGamePlayers());
         if (gameResult.isFinished()) {
             //game finished
+            voiceOutputService.announceWinner(gameResult);
             simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage(gameResult.getMessage()));
 
         } else {
             // reset ready player vote status
+
+            // TODO 24/1/21 speak()  start new Thread need to find a way make sure the previous method finished until next one will call
+            //
+            voiceOutputService.speak(VoiceProperties.GAME_CONTINUE_FILE_NAME);
             List<StompPrincipal> stompPrincipals = playerService.resetVoteCount();
             simpMessagingTemplate.convertAndSend(BROADCAST_PLAYER_STATUS_DESTINATION, new Gson().toJson(stompPrincipals));
+            voiceOutputService.speak(VoiceProperties.GAME_VOTE_FILE_NAME);
             simpMessagingTemplate.convertAndSend(BROADCAST_DESTINATION, new GameMessage("Start Voting...."));
             isGameStarted.getAndSet(false);
         }

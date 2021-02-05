@@ -36,7 +36,7 @@ public class GameServiceTest {
 
         this.playerService = new PlayerService();
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.voteService = new VoteService(this.playerService, witchAction, simpMessagingTemplate);
+        this.voteService = new VoteService(voiceOutputService, this.playerService, witchAction, simpMessagingTemplate);
 
     }
 
@@ -51,10 +51,8 @@ public class GameServiceTest {
     public void testDeal() {
         List<StompPrincipal> players = createPlayers(7, "testNickname");
 
-        GameService gameService = new GameService(playerService, voteService, simpMessagingTemplate);
-        players.forEach(player -> {
-            gameService.readyPlayer(player.getName(), "testNickname");
-        });
+        GameService gameService = new GameService(voiceOutputService, playerService, simpMessagingTemplate);
+        players.forEach(player -> gameService.readyPlayer(player.getName(), "testNickname"));
         List<StompPrincipal> playersWithRole = gameService.deal();
         long count = playersWithRole.stream().filter(player -> player.getRole().equals(Role.VILLAGER)).count();
         // total 7 players should have 3 villagers

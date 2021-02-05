@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -133,9 +134,18 @@ public class VoiceResourceGenerator {
         }
     }
 
+    public static void stopCurrentThread(long timeToStopInMs) {
+        try {
+            Thread.sleep(timeToStopInMs);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            log.error("exception in sleep,{}", e.getMessage(), e);
+        }
+    }
+
     private List<Callable<String>> buildVoiceTasks() {
         List<Callable<String>> mp3FileGenerateTaskList = new ArrayList<>();
-        Arrays.stream(VoiceProperties.class.getDeclaredFields()).filter(field -> !"MP3_SUFFIX".equals(field.getName())).forEach(field -> {
+        Arrays.stream(VoiceProperties.class.getDeclaredFields()).filter(field -> !"MP3_SUFFIX".equals(field.getName()) && !Modifier.isStatic(field.getModifiers())).forEach(field -> {
 
             String voiceResourceFileName = voiceProperties.getVoiceResourceFileName(field.getName());
             try {
@@ -152,4 +162,5 @@ public class VoiceResourceGenerator {
         });
         return mp3FileGenerateTaskList;
     }
+
 }
