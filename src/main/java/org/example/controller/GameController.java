@@ -1,6 +1,8 @@
 package org.example.controller;
 
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.example.model.StompPrincipal;
 import org.example.schedule.Scheduler;
 import org.example.service.GameService;
@@ -15,13 +17,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINATION;
 
 /**
  * Created by daqwang on 9/2/20.
  */
+@Slf4j
 @Controller
 @RequestMapping("/game")
 public class GameController {
@@ -50,6 +55,12 @@ public class GameController {
     @RequestMapping("/index")
     public ModelAndView index(ModelAndView modelAndView) {
         modelAndView.setViewName("index");
+        return modelAndView;
+    }
+
+    @RequestMapping("/layer")
+    public ModelAndView layer(ModelAndView modelAndView) {
+        modelAndView.setViewName("layer");
         return modelAndView;
     }
 
@@ -82,8 +93,25 @@ public class GameController {
 
     @GetMapping(value = "/player/status", produces = {MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<List<StompPrincipal>> playerStatus() {
-        List<StompPrincipal> stompPrincipals = playerService.showPlayersStatus();
         return ResponseEntity.ok(playerService.showPlayersStatus());
+    }
+
+    /**
+     * todo need to change playerService.getReadyPlayer()
+     *
+     * @param name
+     * @return
+     */
+    @GetMapping(value = "/player/details/{userId}", produces = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<List<StompPrincipal>> playerStatusById(@PathVariable("userId") String name) {
+        if (StringUtils.isBlank(name)) {
+            log.error("Invalid user id, user id is empty");
+            return ResponseEntity.status(400).body(Collections.emptyList());
+        }
+        List<StompPrincipal> playerByIdList = playerService.getReadyPlayerList().stream()
+                .filter(player -> player.getName().equalsIgnoreCase(name))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(playerByIdList);
     }
 
     /**

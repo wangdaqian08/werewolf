@@ -3,6 +3,7 @@ package org.example.service;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.example.action.WitchAction;
+import org.example.config.VoiceProperties;
 import org.example.model.ActionResult;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
@@ -32,11 +33,13 @@ public class VoteService {
     private final PlayerService playerService;
     private final WitchAction witchAction;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final VoiceOutputService voiceOutputService;
 
     @Autowired
-    public VoteService(final PlayerService playerService, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate) {
+    public VoteService(final VoiceOutputService voiceOutputService, final PlayerService playerService, final WitchAction witchAction, final SimpMessagingTemplate simpMessagingTemplate) {
         this.playerService = playerService;
         this.witchAction = witchAction;
+        this.voiceOutputService = voiceOutputService;
         this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
@@ -69,7 +72,12 @@ public class VoteService {
         return player != null && player.isReady() && player.isInGame();
     }
 
-    public VoteReport generateVoteResult() {
+    /**
+     * create vote result, announce vote finished message.
+     *
+     * @return VoteReport
+     */
+    public VoteReport generateVoteResultAndAnnounce() {
 
         //players who still in game
         List<StompPrincipal> remainPlayers = playerService.getReadyPlayerList().stream().filter(StompPrincipal::isInGame).collect(Collectors.toList());
@@ -87,7 +95,7 @@ public class VoteService {
 
         // check draw condition
         calculateVoteCondition(voteReport, remainPlayers);
-
+        voiceOutputService.speak(VoiceProperties.VOTE_FINISHED_FILE_NAME);
         return voteReport;
     }
 
@@ -150,17 +158,17 @@ public class VoteService {
         return voteReport;
     }
 
-    public ActionResult handleRoleAction(final StompPrincipal voter, final String nickName, final GameService.RoleAction roleAction) {
+    public ActionResult handleRoleAction(final StompPrincipal voter, final String name, final GameService.RoleAction roleAction) {
 
         switch (roleAction) {
             case CHECK:
-                return handleSeerCheckAction(voter, nickName);
+                return handleSeerCheckAction(voter, name);
             case KILL:
-                return handleWolfKillAction(voter, nickName);
+                return handleWolfKillAction(voter, name);
             case SAVE:
-                return handleWitchHelpAction(voter, nickName);
+                return handleWitchHelpAction(voter, name);
             case POISONING:
-                return handleWitchPoisonAction(voter, nickName);
+                return handleWitchPoisonAction(voter, name);
             case NOTHING:
                 return handleWitchDoNothingAction(voter, null);
             default:
@@ -177,15 +185,15 @@ public class VoteService {
     /**
      * witch save player by player nick name.
      *
-     * @param nickName player nick name need to be saved
+     * @param name player nick name need to be saved
      * @return ActionResult
      */
-    private ActionResult handleWitchHelpAction(final StompPrincipal voter, final String nickName) {
+    private ActionResult handleWitchHelpAction(final StompPrincipal voter, final String name) {
 
         List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
         ActionResult witchHelpActionResult = ActionResult.getInstance("handle witch help action");
         inGamePlayers.stream()
-                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
 
@@ -197,7 +205,7 @@ public class VoteService {
                     }
                     voter.setHasVoted(true);
                 }, () -> {
-                    throw new RuntimeException("can't find player " + nickName + "to check");
+                    throw new RuntimeException("can't find player " + name + "to check");
                 });
         return witchHelpActionResult;
     }
@@ -208,15 +216,15 @@ public class VoteService {
      * set player inGame is false<br/>
      * set voter is voted to true<br/>
      *
-     * @param voter    the witch player
-     * @param nickName the player's nickname to be poisoned
+     * @param voter the witch player
+     * @param name  the player's nickname to be poisoned
      * @return ActionResult
      */
-    private ActionResult handleWitchPoisonAction(StompPrincipal voter, String nickName) {
+    private ActionResult handleWitchPoisonAction(StompPrincipal voter, String name) {
         List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
         ActionResult witchPoisonActionResult = ActionResult.getInstance("handle witch poison action");
         inGamePlayers.stream()
-                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
                     if (witchAction.consumeAvailableWitchItem(POISON)) {
@@ -227,7 +235,7 @@ public class VoteService {
                     }
                     voter.setHasVoted(true);
                 }, () -> {
-                    throw new RuntimeException("can't find player " + nickName + "to check");
+                    throw new RuntimeException("can't find player " + name + "to check");
                 });
         return witchPoisonActionResult;
     }
@@ -236,22 +244,22 @@ public class VoteService {
      * handle seer check action by player nickname.
      * set seer isVoted=true, return the checked player object
      *
-     * @param voter    seer
-     * @param nickName the player's nickname need to be checked
+     * @param voter seer
+     * @param name  the player's nickname need to be checked
      * @return ActionResult contains the checked player
      */
-    private ActionResult handleSeerCheckAction(StompPrincipal voter, String nickName) {
+    private ActionResult handleSeerCheckAction(StompPrincipal voter, String name) {
         List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
         ActionResult seerActionResult = ActionResult.getInstance("handle seer check action");
         inGamePlayers.stream()
-                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
                     seerActionResult.getResultPlayer().put(player, CHECK);
                     seerActionResult.setResult("seer finish the check action");
                     voter.setHasVoted(true);
                 }, () -> {
-                    throw new RuntimeException("can't find player " + nickName + "to check");
+                    throw new RuntimeException("can't find player " + name + "to check");
                 });
         return seerActionResult;
     }
@@ -259,16 +267,16 @@ public class VoteService {
     /**
      * handle wolf kill action by player nick name.
      *
-     * @param voter    the wolf player
-     * @param nickName the player will be killed
+     * @param voter the wolf player
+     * @param name  the player will be killed
      * @return ActionResult
      */
-    private ActionResult handleWolfKillAction(final StompPrincipal voter, final String nickName) {
+    private ActionResult handleWolfKillAction(final StompPrincipal voter, final String name) {
 
         List<StompPrincipal> inGamePlayers = playerService.getInGamePlayers();
         final ActionResult wolfActionResult = ActionResult.getInstance("handle wolf kill action");
         inGamePlayers.stream()
-                .filter(player -> player.getNickName().equalsIgnoreCase(nickName))
+                .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
                     wolfActionResult.getResultPlayer().put(player, KILL);
@@ -279,7 +287,7 @@ public class VoteService {
                     if (playerService.getInGamePlayersByRole(Role.WOLF).stream().filter(StompPrincipal::isHasVoted).collect(Collectors.toList()).size() == 1) {
                         voter.setHasVoted(true);
                     }
-                    log.info("can't find player {} to kill", nickName);
+                    log.info("can't find player {} to kill", name);
                 });
         return wolfActionResult;
     }

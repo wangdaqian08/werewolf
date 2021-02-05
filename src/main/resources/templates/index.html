@@ -1,5 +1,6 @@
 <html lang="en">
 <head>
+    <meta content="text/html;charset=UTF-8" http-equiv="Content-Type">
 
     <style>
         .connected {
@@ -58,7 +59,7 @@
 
 </head>
 
-<body>
+<body style="height:100%">
 
 <div>
     <div>
@@ -84,11 +85,15 @@
 <ul class="system-message" id="system-message"></ul>
 <div class="role" id="role"></div>
 <button disabled="disabled" id="btn-role">Role</button>
+<button id="layer">Layer</button>
+<button id="btnVote">Test Vote</button>
+
 <div id="player-list" class="players"></div>
 <div id="connect-status" class="disconnect"></div>
 <div id="debug" class="debug"></div>
-
+<div id="parent_receive">Test Child Function</div>
 </body>
 
-<script src="../static/js/game.js"></script>
+<script charset="UTF-8" src="../layer/layer.js"></script>
+<script charset="UTF-8" src="../static/js/game.js"></script>
 </html>

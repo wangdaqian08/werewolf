@@ -44,20 +44,22 @@ public class VoteController {
     /**
      * todo need to update to session ID replace nickname
      *
-     * @param action        role action (kill,check,save,poisoning...)
-     * @param voterNickname the nickname of the player who make the vote
-     * @param nickName      the player's nickname who is been voted
+     * @param action    role action (kill,check,save,poisoning...)
+     * @param voterName the name of the player who make the vote
+     * @param name      the player's name who is been voted
      * @return ActionResult
      */
-    @GetMapping("/action/{action}/voter/{voterNickname}/player/{nickName}")
-    public ResponseEntity<ActionResult> action(@PathVariable("action") String action, @PathVariable("voterNickname") String voterNickname, @PathVariable("nickName") String nickName) {
-        StompPrincipal voter = playerService.getPlayerByNickName(voterNickname);
+    @GetMapping("/voter/{voterName}/player/{name}/action/{action}")
+    public ResponseEntity<ActionResult> action(@PathVariable("action") String action, @PathVariable("voterName") String voterName, @PathVariable("name") String name) {
+        //todo update to playerName
+
+        StompPrincipal voter = playerService.getPlayerByName(voterName);
         GameService.RoleAction playerAction = GameService.RoleAction.valueOf(action.trim().toUpperCase());
         //check if player has the right permission to perform the action
         if (!isActionAuthorised(voter, playerAction)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ActionResult("player can't perform this action:" + action));
         }
-        ActionResult actionResult = voteService.handleRoleAction(voter, nickName, playerAction);
+        ActionResult actionResult = voteService.handleRoleAction(voter, name, playerAction);
         return ResponseEntity.ok(actionResult);
     }
 

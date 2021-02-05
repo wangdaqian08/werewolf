@@ -1,6 +1,7 @@
 package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.config.VoiceProperties;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
@@ -35,7 +36,7 @@ public class WerewolfAction extends AbstractGameAction {
 
     @Override
     public Object call() {
-
+        voiceOutputService.speak(VoiceProperties.WOLF_ACTION_FILE_NAME);
         setStatus(STATUS.IN_PROGRESS);
         sendPrivateRoleMessageToPlayer(PRIVATE_WEREWOLF_ACTION_DESTINATION, WOLVES_ACTION_KILL_QUESTION_MESSAGE, Role.WOLF);
         // TODO 20/12/20
@@ -63,7 +64,7 @@ public class WerewolfAction extends AbstractGameAction {
         log.info("Werewolf Action Completed");
         setStatus(STATUS.FINISHED);
         resetVoteForRole(playerService, Role.WOLF);
-        voiceOutputService.speak(WOLVES_ACTION_CLOSE_EYES_MESSAGE);
+        voiceOutputService.speak(VoiceProperties.WOLF_CLOSE_EYES_ACTION_FILE_NAME);
         return true;
     }
 

@@ -1,6 +1,7 @@
 package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.config.VoiceProperties;
 import org.example.model.ActionResult;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
@@ -28,8 +29,7 @@ public class WitchAction extends AbstractGameAction {
 
     public final static String POISON = "poison";
     public final static String ANTIDOTE = "antidote";
-    private final static String WITCH_ACTION_MESSAGE_TEMPLATE = "WItch, you have %s";
-    private final static String WITCH_ACTION_CLOSE_EYES_MESSAGE = "Witch please close your eyes";
+    private final static String WITCH_ACTION_MESSAGE_TEMPLATE = "Witch, you have %s";
     private final Map<String, Boolean> witchItems = new HashMap<>();
     private final VoiceOutputService voiceOutputService;
 
@@ -61,7 +61,7 @@ public class WitchAction extends AbstractGameAction {
     @Override
     public Object call() {
         setStatus(STATUS.IN_PROGRESS);
-
+        voiceOutputService.speak(VoiceProperties.WITCH_ACTION_FILE_NAME);
         String witchActionMessage = generateAvailableWitchItems(witchItems);
         sendPrivateRoleMessageToPlayer(PRIVATE_WITCH_ACTION_DESTINATION, witchActionMessage, Role.WITCH);
         // TODO 20/12/20
@@ -70,7 +70,7 @@ public class WitchAction extends AbstractGameAction {
         while (!isActionCompleted(Role.WITCH)) {
             // block the thread if this action haven't completed
             try {
-                Thread.sleep(800L);
+                Thread.sleep(8000L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -84,7 +84,7 @@ public class WitchAction extends AbstractGameAction {
         log.info("Witch Action Completed");
         setStatus(STATUS.FINISHED);
         resetVoteForRole(playerService, Role.WITCH);
-        voiceOutputService.speak(WITCH_ACTION_CLOSE_EYES_MESSAGE);
+        voiceOutputService.speak(VoiceProperties.WITCH_CLOSE_EYES_ACTION_FILE_NAME);
         return true;
     }
 

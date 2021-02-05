@@ -28,6 +28,9 @@ public class VoiceProperties {
     public static final String VILLAGER_WIN_NIGHT_FILE_NAME = "villagerWin.mp3";
     public static final String GAME_CONTINUE_FILE_NAME = "gameContinue.mp3";
     public static final String GAME_VOTE_FILE_NAME = "gameVote.mp3";
+    public static final String CONFIRM_IDENTITY_FILE_NAME = "confirmIdentity.mp3";
+    public static final String VOTE_FINISHED_FILE_NAME = "voteFinished.mp3";
+
     private String skyDark;
     private String wolfAction;
     private String wolfCloseEyesAction;
@@ -41,6 +44,8 @@ public class VoiceProperties {
     private String villagerWin;
     private String gameContinue;
     private String gameVote;
+    private String confirmIdentity;
+    private String voteFinished;
 
     public String getVoiceResourceFileName(final String voiceResource) {
         Field[] declaredFields = this.getClass().getDeclaredFields();

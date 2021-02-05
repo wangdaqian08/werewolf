@@ -7,10 +7,14 @@ $(document).ready(function () {
 
     testCode();
 
-    let StompConnector = function StompConnector(url) {
 
+    let player;
+    let StompConnector = function StompConnector(url) {
+        let userId;
         this.broadcastMsgUrl = "/app/chat/broadcast";
         this.privateMsgUrl = "/app/chat/private";
+
+
         if (url) {
             this.url = url
             this.socket = new SockJS(url);
@@ -22,9 +26,8 @@ $(document).ready(function () {
             if (isEnable && this.stompClient) {
                 this.stompClient.debug = function (str) {
                     // append the debug log to a #debug div somewhere in the page using JQuery:
-                    findUserId(str);
+                    userId = findUserId(str);
                     var div = "<div>" + str + "</div>";
-
                     $("#debug").prepend(div);
                 };
             }
@@ -152,6 +155,11 @@ $(document).ready(function () {
         }
     });
 
+    $('#btnVote').click(function () {
+        //todo need to add toggle for this button: enable/disable
+        player.getPlayerListToVote()
+    });
+
 
     function toggleReadyButton(show) {
         if (show) {
@@ -277,8 +285,12 @@ $(document).ready(function () {
 
     function findUserId(str) {
         if (str.includes('user-name:')) {
-            let userId = str.substr(51).replace(/\s+/g, '');
+            //  remove non printable characters
+            let userId = str.substr(51, 54).replace(/[^\x20-\x7E]/g, '');
             $('#player-id').text(userId);
+            console.log(encodeURI(userId));
+            player = new Player(userId);
+            return userId;
         }
     }
 
@@ -292,6 +304,162 @@ $(document).ready(function () {
         document.getElementById('btnDisconnect').disabled = !connected;
         document.getElementById('conversationDiv').style.visibility = connected ? 'visible' : 'hidden';
         document.getElementById('response').innerHTML = '';
+    }
+
+
+    class Player {
+
+
+        constructor(userId) {
+            this.userId = userId;
+            this.voteList = null;
+            this.playerList;
+        }
+
+
+        getPlayerListToVote() {
+            let getVotePlayersUrl = '/player/voteList/' + this.userId;
+            $.getJSON(getVotePlayersUrl, function (voteList) {
+                if (voteList.length !== 0) {
+                    console.log(voteList);
+                } else {
+                    console.log("error finding vote list for user:" + Player.prototype.userId);
+                }
+
+            }).fail(function (result) {
+                console.log(result);
+            });
+            return this.voteList;
+        }
+
+        getSelfDetails() {
+            let getVotePlayersUrl = '/player/details/' + this.userId;
+
+            $.getJSON(getVotePlayersUrl, function (playerDetails) {
+                if (playerDetails.length !== 0) {
+                    this.player = playerDetails[0];
+                    return playerDetails[0];
+                } else {
+                    console.log("error finding user details, userId: " + Player.prototype.userId);
+                }
+
+            }).fail(function (result) {
+                console.log(result);
+            });
+        }
+
+        executeActionForRole(role, data) {
+            var selectedName = data.selectedName.trim();
+            var currentPlayerName = String(this.userId.trim());
+
+            // switch role find action
+            var action = findActionByRole(role);
+            var actionEndpoint = '/vote/voter/' + currentPlayerName + '/player/' + selectedName + '/action/' + action;
+
+            $.getJSON(actionEndpoint, function (playerDetails) {
+                if (playerDetails.length !== 0) {
+                    this.player = playerDetails[0];
+                    return playerDetails[0];
+                } else {
+                    console.log("error finding user details, userId: " + Player.prototype.userId);
+                }
+
+            }).fail(function (result) {
+                console.log(result);
+            });
+        }
+
+    }
+
+
+    function getPlayerListForFeaturedRole() {
+        let actionList;
+        let getPlayersForFeatureUrl = '/player/forAction/' + player.userId;
+        $.ajax({
+            url: getPlayersForFeatureUrl,
+            dataType: 'json',
+            async: false,
+            success: function (playerList) {
+                if (playerList.length !== 0) {
+                    console.log(playerList);
+                    actionList = playerList;
+                } else {
+                    console.log("error finding user details, userId: " + Player.prototype.userId);
+                }
+            },
+            error: function (msg) {
+                console.log(msg);
+            }
+        });
+        return actionList;
+    }
+
+    function findActionByRole(role) {
+        let action;
+        switch (role) {
+            case 'wolf':
+                action = 'kill';
+                break;
+            case 'seer':
+                action = 'check';
+                break;
+            case 'poisoning':
+                action = 'poisoning';
+                break;
+            case 'save':
+                action = 'save';
+                break;
+        }
+        return action;
+    }
+
+
+    var idx;
+    $('#layer').on('click', function () {
+        console.log("layer button clicked");
+
+        console.log(player.getSelfDetails());
+
+        let playersForAction = getPlayerListForFeaturedRole();
+        idx = layer.open({
+            type: 2,
+            title: false,
+            maxmin: true,
+            btnAlign: 'c',
+            btn: ['确认'],
+            shadeClose: false, //点击遮罩关闭层
+            area: ['400px', '250px'],
+            content: 'layer',
+            success: function (layero, index) {
+
+                // var body = layer.getChildFrame('body', index);
+                // console.log(body.html());
+
+                // let value = window._childFun.childFun("hello from parents");
+                // console.log(value);
+                console.log(playersForAction);
+                window._showOverlayer.show('wolf', playersForAction);
+
+            },
+            yes: function (index, layero) {
+                //call overlayer function
+                let selectedPlayer = window._callbackdata.callBackData();
+                console.log(selectedPlayer.selectedName);
+                console.log(selectedPlayer.selectedNickName);
+
+
+                // TODO 4/2/21
+                // 1. close layer
+                layer.close(index);
+                // 2. call kill action endpoint
+                player.executeActionForRole('wolf', selectedPlayer);
+            }
+        });
+
+    });
+
+    window.parentFun = function (ddd) {
+        console.log("child called" + ddd);
     }
 
 });

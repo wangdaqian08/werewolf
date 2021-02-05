@@ -1,5 +1,6 @@
 package org.example.service;
 
+import javazoom.jlgui.basicplayer.BasicPlayer;
 import org.example.action.SeerAction;
 import org.example.action.WerewolfAction;
 import org.example.action.WitchAction;
@@ -23,7 +24,7 @@ import java.util.List;
 public class GameStepServiceTest {
 
     private PlayerService playerService;
-    private VoteService voteService;
+    private VoiceOutputService voiceOutputService;
 
     private GameService gameService;
 
@@ -37,12 +38,11 @@ public class GameStepServiceTest {
     public void setup() {
 
         this.playerService = new PlayerService();
-        VoiceOutputService voiceOutputService = new VoiceOutputService();
+        this.voiceOutputService = new VoiceOutputService(new BasicPlayer());
         SeerAction seerAction = new SeerAction(playerService, simpMessagingTemplate, voiceOutputService);
         WerewolfAction werewolfAction = new WerewolfAction(playerService, simpMessagingTemplate, voiceOutputService);
         WitchAction witchAction = new WitchAction(playerService, simpMessagingTemplate, voiceOutputService);
-        this.voteService = new VoteService(playerService, witchAction, simpMessagingTemplate);
-        this.gameService = new GameService(playerService, voteService, simpMessagingTemplate);
+        this.gameService = new GameService(voiceOutputService, playerService, simpMessagingTemplate);
         this.gameStepService = new GameStepService(gameService, playerService, werewolfAction, seerAction, witchAction, simpMessagingTemplate, voiceOutputService);
 
     }
@@ -57,7 +57,7 @@ public class GameStepServiceTest {
     public void testDeal() {
         List<StompPrincipal> players = createPlayers(7, "testNickname");
 
-        GameService gameService = new GameService(playerService, voteService, simpMessagingTemplate);
+        GameService gameService = new GameService(voiceOutputService, playerService, simpMessagingTemplate);
         players.forEach(player -> {
             gameService.readyPlayer(player.getName(), "testNickname");
         });

@@ -1,6 +1,7 @@
 package org.example.action;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.config.VoiceProperties;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
@@ -38,16 +39,14 @@ public class SeerAction extends AbstractGameAction {
     @Override
     public Object call() throws Exception {
         setStatus(STATUS.IN_PROGRESS);
-
+        voiceOutputService.speak(VoiceProperties.SEER_ACTION_FILE_NAME);
         sendPrivateRoleMessageToPlayer(PRIVATE_SEER_ACTION_DESTINATION, SEER_ACTION_MESSAGE, Role.SEER);
-        // TODO 20/12/20
-        // voiceOutputService.speak(SEER_ACTION_MESSAGE)
         log.info("SEER Action Started");
 
         while (!isActionCompleted(Role.SEER)) {
             // block the thread if this action haven't completed
             try {
-                Thread.sleep(800L);
+                Thread.sleep(5000L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -58,13 +57,10 @@ public class SeerAction extends AbstractGameAction {
             // reset wolf hasVoted field after wolf kill action
             seer.setHasVoted(false);
         });
-
         log.info("Seer Action Completed");
         setStatus(STATUS.FINISHED);
         resetVoteForRole(playerService, Role.SEER);
-
-        // TODO 20/12/20
-        voiceOutputService.speak(SEER_ACTION_CLOSE_EYES_MESSAGE);
+        voiceOutputService.speak(VoiceProperties.SEER_CLOSE_EYES_ACTION_FILE_NAME);
         return true;
     }
 }
