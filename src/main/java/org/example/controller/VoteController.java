@@ -1,9 +1,9 @@
 package org.example.controller;
 
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.example.model.ActionResult;
-import org.example.model.StompPrincipal;
+import org.example.model.*;
 import org.example.service.GameService;
 import org.example.service.GameStepService;
 import org.example.service.PlayerService;
@@ -16,6 +16,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.example.service.GameService.RoleAction.*;
 
@@ -50,17 +53,29 @@ public class VoteController {
      * @return ActionResult
      */
     @GetMapping("/voter/{voterName}/player/{name}/action/{action}")
-    public ResponseEntity<ActionResult> action(@PathVariable("action") String action, @PathVariable("voterName") String voterName, @PathVariable("name") String name) {
+    public ResponseEntity<PlayerActionMessage> action(@PathVariable("action") String action, @PathVariable("voterName") String voterName, @PathVariable("name") String name) {
         //todo update to playerName
 
         StompPrincipal voter = playerService.getPlayerByName(voterName);
         GameService.RoleAction playerAction = GameService.RoleAction.valueOf(action.trim().toUpperCase());
         //check if player has the right permission to perform the action
         if (!isActionAuthorised(voter, playerAction)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ActionResult("player can't perform this action:" + action));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new PlayerActionMessage("player can't perform this action:" + action, null));
         }
         ActionResult actionResult = voteService.handleRoleAction(voter, name, playerAction);
-        return ResponseEntity.ok(actionResult);
+        List<ExecuteAction> actionResultByActions = actionResult.findActionResultByActions(List.of(playerAction));
+
+        return ResponseEntity.ok(new PlayerActionMessage(actionResult.getResultMessage(), actionResultByActions));
+    }
+
+    @GetMapping("/witch/{voterName}/witchItems")
+    public ResponseEntity<List<String>> findAvailableWitchItems(@PathVariable("voterName") String voterName) {
+        StompPrincipal voter = playerService.getPlayerByName(voterName);
+        //check if player has the right permission to perform the action
+        if (Role.WITCH != voter.getRole()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
+        }
+        return ResponseEntity.ok(voteService.getAvailableWitchItems());
     }
 
     /**

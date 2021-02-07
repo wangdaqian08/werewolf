@@ -271,9 +271,15 @@ $(document).ready(function () {
         if (role !== 'VILLAGER') {
             role_destination = '/user/private/' + role.toLowerCase();
         }
+
+        if (player.currentPlayer === null && role === 'WITCH') {
+            player.getSelfDetails();
+            console.log("self: " + JSON.stringify(player.currentPlayer));
+        }
         // subscribe role destination
         myStomp.subscribePrivateRoleChannel(role_destination, function (roleMessage) {
             handleRoleActionMessage(JSON.parse(roleMessage.body));
+            openLayerForAction(role.toLowerCase());
         });
     }
 
@@ -313,7 +319,7 @@ $(document).ready(function () {
         constructor(userId) {
             this.userId = userId;
             this.voteList = null;
-            this.playerList;
+            this.currentPlayer = null;
         }
 
 
@@ -333,33 +339,56 @@ $(document).ready(function () {
         }
 
         getSelfDetails() {
+            let current = null;
+
             let getVotePlayersUrl = '/player/details/' + this.userId;
-
-            $.getJSON(getVotePlayersUrl, function (playerDetails) {
-                if (playerDetails.length !== 0) {
-                    this.player = playerDetails[0];
-                    return playerDetails[0];
-                } else {
-                    console.log("error finding user details, userId: " + Player.prototype.userId);
+            $.ajax({
+                url: getVotePlayersUrl,
+                dataType: 'json',
+                async: false,
+                success: function (playerDetails) {
+                    if (playerDetails !== undefined) {
+                        current = playerDetails;
+                    } else {
+                        console.log("error finding user details, userId: " + Player.prototype.userId);
+                    }
+                },
+                error: function (msg) {
+                    console.log(msg);
                 }
-
-            }).fail(function (result) {
-                console.log(result);
             });
+            this.currentPlayer = current;
+            return current;
         }
 
-        executeActionForRole(role, data) {
-            var selectedName = data.selectedName.trim();
-            var currentPlayerName = String(this.userId.trim());
+        executeRoleAction(role, data) {
+            let selectedName = data.selectedName.trim();
+            let currentPlayerName = String(this.userId.trim());
 
             // switch role find action
-            var action = findActionByRole(role);
-            var actionEndpoint = '/vote/voter/' + currentPlayerName + '/player/' + selectedName + '/action/' + action;
+            let action = findActionByRole(role);
 
-            $.getJSON(actionEndpoint, function (playerDetails) {
-                if (playerDetails.length !== 0) {
-                    this.player = playerDetails[0];
-                    return playerDetails[0];
+            if (action === 'witch') {
+                action = data.witchAction;
+                console.log("witch action: " + action);
+            }
+            let actionEndpoint = '/vote/voter/' + currentPlayerName + '/player/' + selectedName + '/action/' + action;
+
+
+            $.getJSON(actionEndpoint, function (actionResult) {
+                let actionedPlayer = actionResult.actionList;
+                // TODO 6/2/21
+                // when there are 2 wolves, actionList could be 2 otherwise should be 1.
+                if (actionedPlayer.length !== 0) {
+
+                    let actionResultJson = {
+                        "sender": actionResult.sender,
+                        "time": actionResult.time,
+                        "message": actionResult.message
+                    }
+                    showBroadcastMessageOutput(actionResultJson)
+                    console.log(actionedPlayer);
+                    return actionedPlayer;
                 } else {
                     console.log("error finding user details, userId: " + Player.prototype.userId);
                 }
@@ -403,16 +432,42 @@ $(document).ready(function () {
             case 'seer':
                 action = 'check';
                 break;
-            case 'poisoning':
-                action = 'poisoning';
-                break;
-            case 'save':
-                action = 'save';
+            case 'witch':
+                action = 'witch';
                 break;
         }
         return action;
     }
 
+
+    function openLayerForAction(role) {
+
+        let playersForAction = getPlayerListForFeaturedRole();
+        idx = layer.open({
+            type: 2,
+            title: false,
+            maxmin: true,
+            btnAlign: 'c',
+            btn: ['确认'],
+            shadeClose: false, //点击遮罩关闭层
+            area: ['540px', '420px'],
+            content: 'layer',
+            success: function (layero, index) {
+                console.log(playersForAction);
+                window._showOverlayer.show(role, player.currentPlayer, playersForAction);
+            },
+            yes: function (index, layero) {
+                //call overlayer function
+                let overLayerData = window._callbackdata.callBackData();
+                console.log(overLayerData.selectedName);
+                console.log(overLayerData.selectedNickName);
+                layer.close(index);
+                player.executeRoleAction(role, overLayerData);
+            }
+        });
+
+
+    }
 
     var idx;
     $('#layer').on('click', function () {
@@ -428,16 +483,11 @@ $(document).ready(function () {
             btnAlign: 'c',
             btn: ['确认'],
             shadeClose: false, //点击遮罩关闭层
-            area: ['400px', '250px'],
+            area: ['540px', '420px'],
             content: 'layer',
             success: function (layero, index) {
-
-                // var body = layer.getChildFrame('body', index);
-                // console.log(body.html());
-
-                // let value = window._childFun.childFun("hello from parents");
-                // console.log(value);
                 console.log(playersForAction);
+                var width = $(window).width();
                 window._showOverlayer.show('wolf', playersForAction);
 
             },
@@ -446,13 +496,8 @@ $(document).ready(function () {
                 let selectedPlayer = window._callbackdata.callBackData();
                 console.log(selectedPlayer.selectedName);
                 console.log(selectedPlayer.selectedNickName);
-
-
-                // TODO 4/2/21
-                // 1. close layer
                 layer.close(index);
-                // 2. call kill action endpoint
-                player.executeActionForRole('wolf', selectedPlayer);
+                player.executeRoleAction('wolf', selectedPlayer);
             }
         });
 

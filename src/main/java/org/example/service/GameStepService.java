@@ -7,10 +7,7 @@ import org.example.action.TransitAction;
 import org.example.action.WerewolfAction;
 import org.example.action.WitchAction;
 import org.example.config.VoiceProperties;
-import org.example.model.ActionResult;
-import org.example.model.GameMessage;
-import org.example.model.GameResult;
-import org.example.model.StompPrincipal;
+import org.example.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -19,11 +16,11 @@ import org.springframework.util.CollectionUtils;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import static org.example.service.GameService.RoleAction.*;
 import static org.example.utils.EndpointConstant.BROADCAST_DESTINATION;
 import static org.example.utils.EndpointConstant.BROADCAST_PLAYER_STATUS_DESTINATION;
 
@@ -82,33 +79,41 @@ public class GameStepService {
 
     }
 
-    private List<StompPrincipal> calculateVictims(ActionResult actionResult) {
 
-        Map<StompPrincipal, GameService.RoleAction> victimMap = actionResult.getResultPlayer().entrySet().stream()
-                .filter(entrySet -> entrySet.getValue().equals(GameService.RoleAction.KILL) || entrySet.getValue().equals(GameService.RoleAction.POISONING))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        if (CollectionUtils.isEmpty(victimMap)) {
+    private List<StompPrincipal> calculateVictims(ActionResult actionResult) {
+        List<StompPrincipal> victimList = actionResult.getActionedPlayerList().stream()
+                .filter(executeAction -> executeAction.getRoleAction() == KILL || executeAction.getRoleAction() == POISONING)
+                .map(ExecuteAction::getPlayer)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isEmpty(victimList)) {
             log.info("calculate victim,found no one killed at night");
         } else {
-            Map<StompPrincipal, GameService.RoleAction> witchHelpedPlayer = victimMap.entrySet()
-                    .stream()
-                    .filter(entrySet -> entrySet.getValue().equals(GameService.RoleAction.SAVE))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            List<StompPrincipal> witchHelpedPlayers = actionResult.getActionedPlayerList().stream()
+                    .filter(executeAction -> executeAction.getRoleAction() == SAVE)
+                    .map(ExecuteAction::getPlayer)
+                    .collect(Collectors.toList());
+            if (!CollectionUtils.isEmpty(witchHelpedPlayers) && witchHelpedPlayers.size() > 1) {
+                throw new RuntimeException("Witch can only help 1 play");
+            }
             //set the witch helped player back to game
-            if (!CollectionUtils.isEmpty(witchHelpedPlayer) && witchHelpedPlayer.size() == 1) {
-                Map.Entry<StompPrincipal, GameService.RoleAction> witchHelpedActionEntry =
-                        (Map.Entry<StompPrincipal, GameService.RoleAction>) witchHelpedPlayer.entrySet();
-                if (victimMap.containsKey(witchHelpedActionEntry.getKey())) {
+            if (!CollectionUtils.isEmpty(witchHelpedPlayers)) {
+                StompPrincipal helpedStompPrincipal = witchHelpedPlayers.get(0);
+                helpedStompPrincipal.setInGame(true);
+                // remove helped player from victim list
+
+                boolean removed = victimList.remove(helpedStompPrincipal);
+                if(removed){
                     log.info("remove killed player from victim map, because saved by witch");
-                    victimMap.remove(witchHelpedActionEntry.getKey());
                 }
             }
             actionResult.reset();
         }
-        // TODO 1/1/21
-        // check the empty map keyset()
-        victimMap.forEach((key, value) -> key.setInGame(false));
-        return new ArrayList<>(victimMap.keySet());
+
+        victimList.forEach(victim->{
+            victim.setInGame(false);
+        });
+        return victimList.stream().distinct().collect(Collectors.toList());
     }
 
     private String createWeakUpMessage(List<StompPrincipal> victims) {
@@ -131,6 +136,9 @@ public class GameStepService {
         //execute one by one, werewolvesActions execute first, when finished,execute witchActions, when witchActions finished execute seerActions
 
         try {
+            if(isGameStarted.get()){
+                return;
+            }
             List<Future<Object>> futures = executorService.invokeAll(gameSteps);
             isGameStarted.getAndSet(true);
             List<Future<Object>> finished = new ArrayList<>();

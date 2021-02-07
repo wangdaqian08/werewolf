@@ -3,6 +3,7 @@ package org.example.action;
 import lombok.extern.slf4j.Slf4j;
 import org.example.config.VoiceProperties;
 import org.example.model.ActionResult;
+import org.example.model.ExecuteAction;
 import org.example.model.Role;
 import org.example.model.StompPrincipal;
 import org.example.service.PlayerService;
@@ -62,7 +63,7 @@ public class WitchAction extends AbstractGameAction {
     public Object call() {
         setStatus(STATUS.IN_PROGRESS);
         voiceOutputService.speak(VoiceProperties.WITCH_ACTION_FILE_NAME);
-        String witchActionMessage = generateAvailableWitchItems(witchItems);
+        String witchActionMessage = createAvailableItemsString(generateAvailableWitchItems());
         sendPrivateRoleMessageToPlayer(PRIVATE_WITCH_ACTION_DESTINATION, witchActionMessage, Role.WITCH);
         // TODO 20/12/20
         // voiceOutputService.speak(SEER_ACTION_MESSAGE)
@@ -88,14 +89,23 @@ public class WitchAction extends AbstractGameAction {
         return true;
     }
 
-    private String generateAvailableWitchItems(final Map<String, Boolean> witchItems) {
-        List<String> availableItems = witchItems.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
-        ActionResult instance = ActionResult.getInstance("");
-        StompPrincipal killedPlayer = instance.getResultPlayer().entrySet().stream().filter(entry -> entry.getValue().equals(KILL)).findFirst().map(Map.Entry::getKey).orElse(null);
+    public List<String> generateAvailableWitchItems() {
+        return this.witchItems.entrySet()
+                .stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
 
+    private String createAvailableItemsString(final List<String> availableItems){
         String saveMessage = "";
-        if (killedPlayer != null) {
-            saveMessage = " This player " + killedPlayer.getNickName() + " is killed, do you want to save? ";
+        ActionResult instance = ActionResult.getInstance("");
+
+        ExecuteAction killedPlayerAction = instance.getActionedPlayerList().stream().filter(executeAction -> executeAction.getRoleAction().equals(KILL)).findFirst().orElse(null);
+        if (killedPlayerAction != null) {
+
+            String killedPlayerNickName = killedPlayerAction.getPlayer().getNickName();
+            saveMessage = " This player " + killedPlayerNickName + " is killed, do you want to save? ";
         }
         if (CollectionUtils.isEmpty(availableItems)) {
             return "You don't have any available item";

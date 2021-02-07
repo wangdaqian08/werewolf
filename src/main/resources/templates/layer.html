@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 <head>
     <style>
 
@@ -29,11 +29,12 @@
 
         body {
             height: 100%;
+            background-color: #0e0d0d;
         }
 
         .hero-section {
             align-items: flex-start;
-            background-image: linear-gradient(15deg, #0e0d0d 0%, #9ea0a0 150%);
+            background-image: linear-gradient(0deg, #0e0d0d 0%, #9ea0a0 150%);
             display: flex;
             min-height: 50%;
             justify-content: center;
@@ -48,6 +49,7 @@
             max-width: var(--width-container);
             width: 100%;
         }
+
 
         @media (min-width: 540px) {
             .card-grid {
@@ -84,16 +86,16 @@
             right: 0;
             top: 0;
             transform-origin: center;
-            trsnsform: scale(1) translateZ(0);
+            transform: scale(1) translateZ(0);
             transition: filter 200ms linear,
             transform 200ms linear;
         }
 
-        .card:hover .card__background {
+        .card:hover, .card.card_hovered .card__background {
             transform: scale(1.05) translateZ(0);
         }
 
-        .card-grid:hover > .card:not(:hover) .card__heading {
+        .card-grid:hover, .card.card_hovered > .card:not(:hover) .card__heading {
             color: transparent;
             text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
@@ -113,31 +115,45 @@
 
         .card__category {
             color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: var(--spacing-s);
+            font-size: 0.6rem;
+            margin-bottom: var(--spacing-m);
             text-transform: uppercase;
         }
 
         .card__heading {
             color: var(--text-lighter);
-            font-size: 1.9rem;
+            font-size: 0.7rem;
             text-shadow: 2px 2px 20px rgba(0, 0, 0, 0.2);
             line-height: 1.4;
             word-spacing: 100vw;
+            text-align: center;
+        }
+
+        #head_line {
+            display: inline-block;
+            position: absolute;
+            color: white;
+            font-size: 1.7rem;
+        }
+
+        .witchItem {
+
+            padding: var(--spacing-xxl) var(--spacing-l);
+            background-color: #8D8D8D;
         }
 
 
     </style>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <title>Layer</title>
 
 </head>
 
 <body>
-
-<link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
-
+<div id='head_line'></div>
 <section class="hero-section">
+
     <div class="card-grid">
         <!--   4 cards     -->
         <a class="card" href="#">
@@ -145,7 +161,7 @@
                  style="background-image: url(https://images.unsplash.com/photo-1557177324-56c542165309?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)"></div>
             <div class="card__content">
                 <p class="card__category">Category</p>
-                <h3 class="card__heading">Example Card Heading</h3>
+                <span class="card__heading">Example Card Heading</span>
             </div>
         </a>
         <a class="card" href="#">
@@ -153,7 +169,7 @@
                  style="background-image: url(https://images.unsplash.com/photo-1557187666-4fd70cf76254?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=60)"></div>
             <div class="card__content">
                 <p class="card__category">Category</p>
-                <h3 class="card__heading">Example Card Heading</h3>
+                <span class="card__heading">Example Card Heading</span>
             </div>
         </a>
         <a class="card" href="#">
@@ -161,7 +177,7 @@
                  style="background-image: url(https://images.unsplash.com/photo-1556680262-9990363a3e6d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=60)"></div>
             <div class="card__content">
                 <p class="card__category">Category</p>
-                <h3 class="card__heading">Example Card Heading</h3>
+                <span class="card__heading">Example Card Heading</span>
             </div>
         </a>
         <a class="card" href="#">
@@ -169,12 +185,13 @@
                  style="background-image: url(https://images.unsplash.com/photo-1557004396-66e4174d7bf6?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=800&q=60)"></div>
             <div class="card__content">
                 <p class="card__category">Category</p>
-                <h3 class="card__heading">Example Card Heading</h3>
+                <span class="card__heading">Example Card Heading</span>
             </div>
         </a>
     </div>
 
 </section>
+<div id="witch_items"></div>
 <div>
     <button id="childBtn">Child</button>
 </div>
