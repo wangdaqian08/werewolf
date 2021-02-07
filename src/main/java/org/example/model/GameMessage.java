@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -18,11 +19,12 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder(alphabetic = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@NoArgsConstructor
 public class GameMessage {
 
     private String sender;
-    private String time;
-    private String message;
+    protected String time;
+    protected String message;
     private List<StompPrincipal> candidatePlayers;
 
     public GameMessage(String message) {

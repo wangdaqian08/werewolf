@@ -66,15 +66,15 @@ public class PlayerController {
      * @return ResponseEntity<List < StompPrincipal>>
      */
     @GetMapping(value = "/details/{userId}", produces = {MediaType.APPLICATION_JSON_VALUE})
-    public ResponseEntity<List<StompPrincipal>> playerStatusById(@PathVariable("userId") String name) {
+    public ResponseEntity<StompPrincipal> playerStatusById(@PathVariable("userId") String name) {
         if (StringUtils.isBlank(name)) {
             log.error("Invalid user id, user id is empty");
-            return ResponseEntity.status(400).body(Collections.emptyList());
+            return ResponseEntity.status(400).body(null);
         }
-        List<StompPrincipal> playerByIdList = playerService.getReadyPlayerList().stream()
+        Optional<StompPrincipal> currentPlayerOptional = playerService.getReadyPlayerList().stream()
                 .filter(player -> player.getName().equalsIgnoreCase(name))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(playerByIdList);
+                .findFirst();
+        return currentPlayerOptional.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.status(400).body(null));
     }
 
     /**

@@ -4,15 +4,13 @@ import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.example.action.WitchAction;
 import org.example.config.VoiceProperties;
-import org.example.model.ActionResult;
-import org.example.model.Role;
-import org.example.model.StompPrincipal;
-import org.example.model.VoteReport;
+import org.example.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +39,10 @@ public class VoteService {
         this.witchAction = witchAction;
         this.voiceOutputService = voiceOutputService;
         this.simpMessagingTemplate = simpMessagingTemplate;
+    }
+
+    public List<String> getAvailableWitchItems(){
+        return witchAction.generateAvailableWitchItems();
     }
 
     /**
@@ -120,7 +122,7 @@ public class VoteService {
             voteReport.setMessage(String.format("Players: %s, have same amount of votes: %d", nameOfList, max));
         } else {
             voteReport.setIsDraw(false);
-            voteReport.setDrawList(Collections.emptyList());
+            voteReport.setDrawList(new ArrayList<>());
             StompPrincipal stompPrincipal = remainPlayers.stream().filter(remainPlayer -> remainPlayer.getVoteCount().intValue() == max)
                     .findFirst().orElseThrow(() -> new RuntimeException("can't find the highest vote"));
             stompPrincipal.setInGame(false);
@@ -198,10 +200,10 @@ public class VoteService {
                 .ifPresentOrElse((player) -> {
 
                     if (witchAction.consumeAvailableWitchItem(ANTIDOTE)) {
-                        witchHelpActionResult.getResultPlayer().put(player, SAVE);
-                        witchHelpActionResult.setResult("witch finish the help action");
+                        witchHelpActionResult.getActionedPlayerList().add(new ExecuteAction(SAVE, player));
+                        witchHelpActionResult.setResultMessage("witch finish the help action");
                     } else {
-                        witchHelpActionResult.setResult("witch can't finish the help action, no available " + ANTIDOTE);
+                        witchHelpActionResult.setResultMessage("witch can't finish the help action, no available " + ANTIDOTE);
                     }
                     voter.setHasVoted(true);
                 }, () -> {
@@ -228,10 +230,10 @@ public class VoteService {
                 .findFirst()
                 .ifPresentOrElse((player) -> {
                     if (witchAction.consumeAvailableWitchItem(POISON)) {
-                        witchPoisonActionResult.getResultPlayer().put(player, POISONING);
-                        witchPoisonActionResult.setResult("witch finish the poison action");
+                        witchPoisonActionResult.getActionedPlayerList().add(new ExecuteAction(POISONING, player));
+                        witchPoisonActionResult.setResultMessage("witch finish the poison action");
                     } else {
-                        witchPoisonActionResult.setResult("no available " + POISON + " available");
+                        witchPoisonActionResult.setResultMessage("no available " + POISON + " available");
                     }
                     voter.setHasVoted(true);
                 }, () -> {
@@ -255,8 +257,8 @@ public class VoteService {
                 .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
-                    seerActionResult.getResultPlayer().put(player, CHECK);
-                    seerActionResult.setResult("seer finish the check action");
+                    seerActionResult.getActionedPlayerList().add(new ExecuteAction(CHECK, player));
+                    seerActionResult.setResultMessage("seer finish the check action");
                     voter.setHasVoted(true);
                 }, () -> {
                     throw new RuntimeException("can't find player " + name + "to check");
@@ -279,12 +281,12 @@ public class VoteService {
                 .filter(player -> player.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .ifPresentOrElse((player) -> {
-                    wolfActionResult.getResultPlayer().put(player, KILL);
-                    wolfActionResult.setResult("wolf finish the kill action");
+                    wolfActionResult.getActionedPlayerList().add(new ExecuteAction(KILL, player));
+                    wolfActionResult.setResultMessage("wolf finish the kill action");
                     voter.setHasVoted(true);
                 }, () -> {
                     //todo need to refactor this code: second wolf vote for the same player can't be found, need to update the second wolf isVote to true
-                    if (playerService.getInGamePlayersByRole(Role.WOLF).stream().filter(StompPrincipal::isHasVoted).collect(Collectors.toList()).size() == 1) {
+                    if (playerService.getInGamePlayersByRole(Role.WOLF).stream().filter(StompPrincipal::isHasVoted).count() == 1) {
                         voter.setHasVoted(true);
                     }
                     log.info("can't find player {} to kill", name);
